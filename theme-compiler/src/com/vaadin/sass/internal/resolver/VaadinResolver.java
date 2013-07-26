@@ -51,7 +51,7 @@ public class VaadinResolver implements ScssStylesheetResolver {
      *            A relative or absolute file path
      * @return The normalized path
      */
-    private static String normalize(String path) {
+    protected static String normalize(String path) {
 
         // Ensure only "/" is used, also in Windows
         path = path.replace(File.separatorChar, '/');

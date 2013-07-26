@@ -59,6 +59,7 @@ public class ImportNodeHandler {
                     try {
                         StringBuilder filePathBuilder = new StringBuilder(
                                 styleSheet.getFileName());
+
                         filePathBuilder.append(File.separatorChar).append(
                                 importNode.getUri());
                         if (!filePathBuilder.toString().endsWith(".scss")) {
@@ -69,9 +70,11 @@ public class ImportNodeHandler {
                         ScssStylesheet imported = ScssStylesheet.get(
                                 filePathBuilder.toString(),
                                 styleSheet.getCharset());
+
                         if (imported == null) {
                             imported = ScssStylesheet.get(importNode.getUri());
                         }
+
                         if (imported == null) {
                             throw new FileNotFoundException(importNode.getUri()
                                     + " (parent: "

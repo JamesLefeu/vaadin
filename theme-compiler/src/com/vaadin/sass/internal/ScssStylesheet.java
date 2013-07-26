@@ -19,7 +19,6 @@ package com.vaadin.sass.internal;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,11 +62,11 @@ public class ScssStylesheet extends Node {
 
     private String charset;
 
+    private static ArrayList<ScssStylesheetResolver> resolvers = null;
+
     /**
      * Read in a file SCSS and parse it into a ScssStylesheet
      * 
-     * @param file
-     * @throws IOException
      */
     public ScssStylesheet() {
         super();
@@ -80,7 +79,7 @@ public class ScssStylesheet extends Node {
      * 
      * @param identifier
      *            The file path. If null then null is returned.
-     * @return
+     * @return ScssStylesheet The stylesheet to get.
      * @throws CSSException
      * @throws IOException
      */
@@ -97,7 +96,7 @@ public class ScssStylesheet extends Node {
      * @param identifier
      *            The file path. If null then null is returned.
      * @param encoding
-     * @return
+     * @return ScssStylesheet The stylesheet to get.
      * @throws CSSException
      * @throws IOException
      */
@@ -145,12 +144,53 @@ public class ScssStylesheet extends Node {
         return stylesheet;
     }
 
-    private static ScssStylesheetResolver[] resolvers = null;
+    /**
+     * The "resolvers" need to be a modifiable list.
+     * 
+     * @param styleSheetResolver
+     *            the styleSheetResolver to add
+     */
+    public static void addStylesheetResolver(
+            ScssStylesheetResolver styleSheetResolver) {
+        if (styleSheetResolver != null) {
 
+            if (resolvers == null) {
+                resolvers = new ArrayList<ScssStylesheetResolver>();
+            }
+            resolvers.add(styleSheetResolver);
+        }
+    }
+
+    /**
+     * The "resolvers" need to be a modifiable list.
+     * 
+     * @param styleSheetResolver
+     *            the styleSheetResolver to remove
+     */
+    public static void removeStylesheetResolver(
+            ScssStylesheetResolver styleSheetResolver) {
+        if ((styleSheetResolver != null) && (resolvers != null)) {
+            resolvers.remove(styleSheetResolver);
+        }
+    }
+
+    /**
+     * The "resolvers" need to be a modifiable list.
+     * 
+     * @param styleSheetResolvers
+     *            the styleSheetResolvers to set
+     */
     public static void setStylesheetResolvers(
             ScssStylesheetResolver... styleSheetResolvers) {
-        resolvers = Arrays.copyOf(styleSheetResolvers,
-                styleSheetResolvers.length);
+
+        resolvers = null;
+        ArrayList<ScssStylesheetResolver> myList = null;
+        if (styleSheetResolvers != null) {
+            resolvers = new ArrayList<ScssStylesheetResolver>();
+            if (styleSheetResolvers != null) {
+                Collections.addAll(resolvers, styleSheetResolvers);
+            }
+        }
     }
 
     public InputSource resolveStylesheet(String identifier) {
@@ -378,4 +418,5 @@ public class ScssStylesheet extends Node {
     public void setCharset(String charset) {
         this.charset = charset;
     }
+
 }
