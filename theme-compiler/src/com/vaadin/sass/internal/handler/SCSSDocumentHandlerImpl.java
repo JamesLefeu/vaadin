@@ -48,12 +48,13 @@ import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.RuleNode;
 import com.vaadin.sass.internal.tree.SimpleNode;
 import com.vaadin.sass.internal.tree.VariableNode;
-import com.vaadin.sass.internal.tree.controldirective.ForNode;
-import com.vaadin.sass.internal.tree.controldirective.WhileNode;
 import com.vaadin.sass.internal.tree.controldirective.EachDefNode;
 import com.vaadin.sass.internal.tree.controldirective.ElseNode;
+import com.vaadin.sass.internal.tree.controldirective.ForNode;
 import com.vaadin.sass.internal.tree.controldirective.IfElseDefNode;
 import com.vaadin.sass.internal.tree.controldirective.IfNode;
+import com.vaadin.sass.internal.tree.controldirective.WhileDefNode;
+import com.vaadin.sass.internal.tree.controldirective.WhileNode;
 
 public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
 
@@ -94,8 +95,8 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
     }
 
     @Override
-    public void startForDirective(String var, LexicalUnitImpl from, 
-        LexicalUnitImpl to, boolean inclusive) {
+    public void startForDirective(String var, LexicalUnitImpl from,
+            LexicalUnitImpl to, boolean inclusive) {
         ForNode node = new ForNode(var, from, to, inclusive);
         nodeStack.peek().appendChild(node);
     }

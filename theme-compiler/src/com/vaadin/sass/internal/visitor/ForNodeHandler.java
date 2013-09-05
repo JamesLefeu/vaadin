@@ -17,6 +17,9 @@ package com.vaadin.sass.internal.visitor;
 
 import java.util.ArrayList;
 
+import org.w3c.css.sac.LexicalUnit;
+import org.w3c.flute.parser.ParseException;
+
 import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 import com.vaadin.sass.internal.tree.IVariableNode;
@@ -24,8 +27,6 @@ import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.VariableNode;
 import com.vaadin.sass.internal.tree.controldirective.ForNode;
 import com.vaadin.sass.internal.util.DeepCopy;
-
-import org.w3c.flute.parser.ParseException;
 
 /**
  * @version $Revision: 1.0 $
@@ -40,42 +41,37 @@ public class ForNodeHandler {
     private static void replaceForNode(ForNode forNode) {
         Node last = forNode;
 
-        //Sass-lang.com Implementation:
+        // Sass-lang.com Implementation:
         // * cannot count down
         // * can only iterate by 1
         LexicalUnitImpl from = forNode.getFrom();
         LexicalUnitImpl to = forNode.getTo();
 
-        if (from.getLexicalUnitType() != 
-            LexicalUnit.SAC_INTEGER) {
+        if (from.getLexicalUnitType() != LexicalUnit.SAC_INTEGER) {
 
-            throw new ParseException("Invalid @for in scss file, " + 
-                "'from' is not an integer expression : " + from );
+            throw new ParseException("Invalid @for in scss file, "
+                    + "'from' is not an integer expression : " + from);
         }
 
-        if (to.getLexicalUnitType() != 
-            LexicalUnit.SAC_INTEGER) {
+        if (to.getLexicalUnitType() != LexicalUnit.SAC_INTEGER) {
 
-            throw new ParseException("Invalid @for in scss file, " + 
-                "'to' is not an integer expression : " + to );
+            throw new ParseException("Invalid @for in scss file, "
+                    + "'to' is not an integer expression : " + to);
         } else if (from.getIntegerValue() > to.getIntegerValue()) {
 
-            throw new ParseException("Invalid @for in scss file, " + 
-                "'from' (" + from.getIntegerValue() + 
-                ") cannot be larger than 'to' (" + to.geIntegerValue() +
-                ")" );
+            throw new ParseException("Invalid @for in scss file, " + "'from' ("
+                    + from.getIntegerValue() + ") cannot be larger than 'to' ("
+                    + to.getIntegerValue() + ")");
         }
 
         int i = from.getIntegerValue();
-        int j = (forNode.inclusive) ? 1 : 0;
+        int j = (forNode.getInclusive()) ? 1 : 0;
         j += to.getIntegerValue();
 
         for (int var = i; var < j; var++) {
 
-            VariableNode varNode = new VariableNode(
-                defNode.getVariableName().substring(1), 
-                new LexicalUnitImpl(0,0,null,var), 
-                false);
+            VariableNode varNode = new VariableNode(forNode.getVariableName()
+                    .substring(1), new LexicalUnitImpl(0, 0, null, var), false);
 
             ArrayList<VariableNode> variables = new ArrayList<VariableNode>(
                     ScssStylesheet.getVariables());

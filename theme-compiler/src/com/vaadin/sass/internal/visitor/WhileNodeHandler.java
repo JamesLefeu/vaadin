@@ -25,8 +25,8 @@ import org.apache.commons.jexl2.JexlException;
 import org.w3c.flute.parser.ParseException;
 
 import com.vaadin.sass.internal.tree.Node;
-import com.vaadin.sass.internal.tree.controldirective.WhileNode;
 import com.vaadin.sass.internal.tree.controldirective.WhileDefNode;
+import com.vaadin.sass.internal.tree.controldirective.WhileNode;
 
 /**
  * @version $Revision: 1.0 $
@@ -49,7 +49,9 @@ public class WhileNodeHandler {
     }
 
     private static Boolean evaluateExpression(WhileDefNode node, Node after) {
+        Boolean result = false;
         for (final Node child : node.getChildren()) {
+            result = false;
             if (child instanceof WhileNode) {
                 try {
                     String expression = ((WhileNode) child).getExpression();
@@ -60,8 +62,6 @@ public class WhileNodeHandler {
                     Expression e = evaluator.createExpression(expression);
                     try {
                         Object eval = e.evaluate(null);
-
-                        Boolean result = false;
                         if (eval instanceof Boolean) {
                             result = (Boolean) eval;
                         } else if (eval instanceof String) {
@@ -85,15 +85,15 @@ public class WhileNodeHandler {
                                         + child.toString());
                     }
                 } catch (JexlException e) {
-                    throw new ParseException(
-                            "Invalid @while in scss file for "
-                                    + child.toString());
+                    throw new ParseException("Invalid @while in scss file for "
+                            + child.toString());
                 }
             } else {
-                throw new ParseException(
-                            "Invalid @while in scss file for " + node);
+                throw new ParseException("Invalid @while in scss file for "
+                        + node);
             }
         }
+        return result;
     }
 
     private static String replaceStrings(String expression) {
@@ -111,13 +111,13 @@ public class WhileNodeHandler {
         return expression;
     }
 
-    private static void replaceDefNodeWithCorrectChild(Node after,
-            Node parent, final Node child) {
+    private static void replaceDefNodeWithCorrectChild(Node after, Node parent,
+            final Node child) {
 
         Node next = after;
         for (final Node n : new ArrayList<Node>(child.getChildren())) {
             parent.appendChild(n, next);
-            next = n; 
+            next = n;
         }
 
         after = next;

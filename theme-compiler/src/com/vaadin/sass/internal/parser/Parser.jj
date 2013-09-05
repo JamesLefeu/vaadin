@@ -138,7 +138,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      * @exception CSSException the source is not CSS valid.
      */
     public void parseStyleSheet(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 	if (selectorFactory == null) {
@@ -172,7 +172,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      */    
     // TODO required by original parser but not used by Vaadin?
     public void parseRule(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -194,7 +194,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      * @exception CSSException the source is not CSS valid.
      */
     public void parseStyleDeclaration(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -219,7 +219,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      * Parse methods used by DOM Level 2 implementation.
      */    
     public void parseImportRule(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -233,7 +233,7 @@ public class Parser implements org.w3c.css.sac.Parser {
     }
 
     public void parseMediaRule(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -255,7 +255,7 @@ public class Parser implements org.w3c.css.sac.Parser {
     }
 
     public LexicalUnit parsePropertyValue(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -263,7 +263,7 @@ public class Parser implements org.w3c.css.sac.Parser {
     }
 
     public boolean parsePriority(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -1155,7 +1155,7 @@ String property() :
 String variableName() :
 {Token n;}
 {
-    n=<VARIABLE> (<S>)* {return convertIdent(n.image.substring(1));}
+     n=<VARIABLE> (LOOKAHEAD(2)<S>)* {return convertIdent(n.image.substring(1));}
 }
 
 String functionName() :
@@ -2017,6 +2017,7 @@ void whileDirective() :
     String s = null;
     String evaluator = "";
 }
+{  
   <WHILE_SYM>
   ( s = booleanExpressionToken() { evaluator += s;} )+
   < LBRACE >(< S >)*
@@ -2477,7 +2478,7 @@ LexicalUnitImpl result = null;
 	| result=hexcolor(prev)	
         | result=url(prev)
 	| result=unicode(prev)
-         ) ) ( <S> )*
+         ) ) ( LOOKAHEAD(2)<S> )*
   {
     return result;
   }

@@ -25,10 +25,7 @@ import org.w3c.css.sac.SACMediaList;
 
 import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.parser.LexicalUnitImpl;
-import com.vaadin.sass.internal.tree.ForNode;
 import com.vaadin.sass.internal.tree.VariableNode;
-import com.vaadin.sass.internal.tree.WhileNode;
-import com.vaadin.sass.internal.tree.controldirective.EachDefNode;
 
 public interface SCSSDocumentHandler extends DocumentHandler {
     ScssStylesheet getStyleSheet();
@@ -52,7 +49,7 @@ public interface SCSSDocumentHandler extends DocumentHandler {
     void property(String name, LexicalUnitImpl value, boolean important,
             String comment);
 
-    void startForDirective(String var, LexicalUnitImpl from, 
+    void startForDirective(String var, LexicalUnitImpl from,
             LexicalUnitImpl to, boolean inclusive);
 
     void endForDirective();

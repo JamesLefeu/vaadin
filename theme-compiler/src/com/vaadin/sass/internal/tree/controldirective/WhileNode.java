@@ -28,7 +28,7 @@ import com.vaadin.sass.internal.util.StringUtil;
  * @version $Revision: 1.0 $
  * @author James Lefeu @ Liferay, Inc.
  */
-public class WhileNode extends Node implements IVariableNode {
+public class WhileNode extends Node implements IfElseNode, IVariableNode {
     private static final long serialVersionUID = 7593896018196027279L;
 
     private String expression;
