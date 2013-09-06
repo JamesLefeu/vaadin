@@ -306,9 +306,13 @@
         <property name="test.classes" location="${result.dir}/tests/classes" />
 
 
-        <junit printsummary="withOutAndErr" fork="yes">
+        <junit printsummary="withOutAndErr" fork="yes"
+        	forkmode="once">
             <formatter usefile="false" type="plain" />
             <jvmarg value="-ea" />
+        	
+            <jvmarg value="-Xdebug" />
+            <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=y" />
             <classpath location="${test.classes}" />
             <classpath location="${classes}" />
             <classpath refid="classpath.compile.custom" />

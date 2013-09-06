@@ -22,6 +22,14 @@ $borderWeight : solid;
 	@else { border: 1px solid; }
 }
 
+$class-slug: for !default;
+
+@for $i from 1 through 4 {
+	.#{$class-slug}-#{$i} {
+		width: 60px + $i
+	}
+}
+
 .falseIfTrueElse {
 	@if 1+2 == 2 { border: 2px solid; }
 	@else if 1+1 == 2 { border: 1px solid; }
@@ -34,9 +42,25 @@ $borderWeight : solid;
 	 }
 }
 
+@for $i from 1 to 4 {
+	.#{$class-slug}-#{$i} {
+		width: 70px + $i
+	}
+}
+
 @mixin logo($size){
 	font: {
 		size: $size;
-		color: blue;		
+		color: blue;
 	}
+}
+
+$types: 4;
+$type-width: 20px;
+
+@while $types > 0 {
+	.while-#{$types} {
+		width: $type-width + $types
+	}
+	$types: $types - 1
 }
