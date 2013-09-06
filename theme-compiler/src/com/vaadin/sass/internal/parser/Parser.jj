@@ -1999,7 +1999,7 @@ void forDirective() :
 {
   <FOR_SYM>
   (< S >)*
-  var = < VARIABLE > (< S >)* <FROM> first = term(null)
+  var = < VARIABLE > (< S >)* <FROM> (< S >)* first = term(null)
   (<TO> (< S >)* secondTo = term(null)
   {documentHandler.startForDirective(var.image, first, secondTo, false);}
   | <THROUGH> (< S >)* secondTo = term(null)
