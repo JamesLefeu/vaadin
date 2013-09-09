@@ -1614,7 +1614,7 @@ void eachDirective() :
   {documentHandler.startEachDirective(var.image, listVariable);}
   )
   < LBRACE >(< S >)*
-  ( ifContentStatement() )*	  
+  ( ifContentStatement() )*
   < RBRACE >(< S >)*
   { documentHandler.endEachDirective();}
 }
@@ -2002,7 +2002,7 @@ void forDirective() :
   var = < VARIABLE > (< S >)* <FROM> (< S >)* first = term(null)
   (<TO> (< S >)* secondTo = term(null)
   {documentHandler.startForDirective(var.image, first, secondTo, false);}
-  | <THROUGH> (< S >)* secondTo = term(null)
+  | <THROUGH> (< S >)* secondThrough = term(null)
   {documentHandler.startForDirective(var.image, first, secondThrough, true);}
   )
   (< S >)*
