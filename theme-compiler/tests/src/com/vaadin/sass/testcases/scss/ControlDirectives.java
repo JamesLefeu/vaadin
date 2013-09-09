@@ -72,6 +72,10 @@ public class ControlDirectives extends AbstractTestBase {
 
         Assert.assertEquals(1, children.get(1).getChildren().size());
 
+        Assert.assertNotNull(((ForNode) children.get(6)).getFrom());
+        Assert.assertNotNull(((ForNode) children.get(6)).getTo());
+        Assert.assertNotNull(((ForNode) children.get(9)).getFrom());
+        Assert.assertNotNull(((ForNode) children.get(9)).getTo());
     }
 
     @Test
