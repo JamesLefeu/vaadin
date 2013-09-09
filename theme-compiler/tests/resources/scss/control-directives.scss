@@ -62,5 +62,5 @@ $type-width: 20px;
 	.while-#{$types} {
 		width: $type-width + $types
 	}
-	$types: $types - 1
+	$types: $types - 1;
 }
