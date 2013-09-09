@@ -99,6 +99,7 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
             LexicalUnitImpl to, boolean inclusive) {
         ForNode node = new ForNode(var, from, to, inclusive);
         nodeStack.peek().appendChild(node);
+        nodeStack.push(node);
     }
 
     @Override
