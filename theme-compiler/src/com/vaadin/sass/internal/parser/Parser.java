@@ -4554,7 +4554,7 @@ boolean isPseudoElement = false;
         }
         jj_consume_token(S);
       }
-      secondTo = term(null);
+      secondThrough = term(null);
    documentHandler.startForDirective(var.image, first, secondThrough, true);
       break;
     default:
