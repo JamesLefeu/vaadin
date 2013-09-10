@@ -32,15 +32,25 @@ public class WhileNode extends Node implements IfElseNode, IVariableNode {
     private static final long serialVersionUID = 7593896018196027279L;
 
     private String expression;
+    private String currentExpression;
 
     public WhileNode(String expression) {
         this.expression = expression;
+        currentExpression = expression;
     }
 
     @Override
     public String getExpression() {
         if (expression != null) {
             return expression.trim();
+        } else {
+            return "false";
+        }
+    }
+
+    public String getCurrentExpression() {
+        if (currentExpression != null) {
+            return currentExpression.trim();
         } else {
             return "false";
         }
@@ -55,7 +65,7 @@ public class WhileNode extends Node implements IfElseNode, IVariableNode {
     public void replaceVariables(ArrayList<VariableNode> variables) {
         for (final VariableNode node : variables) {
             if (StringUtil.containsVariable(expression, node.getName())) {
-                expression = StringUtil.replaceVariable(expression,
+                currentExpression = StringUtil.replaceVariable(expression,
                         node.getName(), node.getExpr().toString());
             }
         }

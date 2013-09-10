@@ -37,10 +37,6 @@ public class WhileDefNode extends Node {
     @Override
     public void traverse() {
         try {
-            for (final Node child : children) {
-                child.traverse();
-            }
-
             WhileNodeHandler.traverse(this);
         } catch (Exception e) {
             e.printStackTrace();

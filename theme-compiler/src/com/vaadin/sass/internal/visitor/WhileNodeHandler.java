@@ -24,37 +24,51 @@ import org.apache.commons.jexl2.JexlEngine;
 import org.apache.commons.jexl2.JexlException;
 import org.w3c.flute.parser.ParseException;
 
+import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.tree.Node;
+import com.vaadin.sass.internal.tree.VariableNode;
 import com.vaadin.sass.internal.tree.controldirective.WhileDefNode;
 import com.vaadin.sass.internal.tree.controldirective.WhileNode;
+import com.vaadin.sass.internal.util.DeepCopy;
 
 /**
  * @version $Revision: 1.0 $
  * @author James Lefeu @ Liferay, Inc.
  */
-public class WhileNodeHandler {
+public class WhileNodeHandler extends EachNodeHandler {
 
     private static final JexlEngine evaluator = new JexlEngine();
     private static final Pattern pattern = Pattern
             .compile("[a-zA-Z0-9]*[a-zA-Z]+[a-zA-Z0-9]*");
 
+    private static final int EVAL_INDEX = 0;
+    private static final int LASTNODE_INDEX = 1;
+
     public static void traverse(WhileDefNode node) throws Exception {
 
-        Node after = node;
+        Node last = node;
 
-        while (evaluateExpression(node, after) == Boolean.TRUE) {
+        ArrayList retVal = evaluateExpression(node, last);
+        last = (Node) retVal.get(LASTNODE_INDEX);
+        while (retVal.get(EVAL_INDEX).equals(Boolean.TRUE)) {
+            retVal = evaluateExpression(node, last);
+            last = (Node) retVal.get(LASTNODE_INDEX);
         }
 
+        node.setChildren(new ArrayList<Node>());
         node.getParentNode().removeChild(node);
     }
 
-    private static Boolean evaluateExpression(WhileDefNode node, Node after) {
+    private static ArrayList evaluateExpression(WhileDefNode node, Node last) {
         Boolean result = false;
+        ArrayList retVal = new ArrayList();
         for (final Node child : node.getChildren()) {
             result = false;
             if (child instanceof WhileNode) {
                 try {
-                    String expression = ((WhileNode) child).getExpression();
+                    child.traverse();
+                    String expression = ((WhileNode) child)
+                            .getCurrentExpression();
                     // We need to add ' ' for strings in the expression for
                     // jexl to understand that it should do a string
                     // comparison
@@ -69,11 +83,12 @@ public class WhileNodeHandler {
                         }
 
                         if (result) {
-                            replaceDefNodeWithCorrectChild(after,
-                                    node.getParentNode(), child);
+                            last = populateWithChildren(child, last, node);
                         }
 
-                        return result;
+                        retVal.add(result);
+                        retVal.add(last);
+                        return retVal;
 
                     } catch (ClassCastException ex) {
                         throw new ParseException(
@@ -93,7 +108,9 @@ public class WhileNodeHandler {
                         + node);
             }
         }
-        return result;
+        retVal.add(result);
+        retVal.add(last);
+        return retVal;
     }
 
     private static String replaceStrings(String expression) {
@@ -111,15 +128,38 @@ public class WhileNodeHandler {
         return expression;
     }
 
-    private static void replaceDefNodeWithCorrectChild(Node after, Node parent,
-            final Node child) {
+    private static Node populateWithChildren(Node whileNode, Node last,
+            WhileDefNode whileDefnode) {
+        ArrayList<VariableNode> variables = new ArrayList<VariableNode>(
+                ScssStylesheet.getVariables());
 
-        Node next = after;
-        for (final Node n : new ArrayList<Node>(child.getChildren())) {
-            parent.appendChild(n, next);
-            next = n;
+        ArrayList<Node> lastList = new ArrayList<Node>();
+        lastList.add(whileDefnode);
+
+        for (final Node child : whileNode.getChildren()) {
+
+            Node copy = (Node) DeepCopy.copy(child);
+            replaceInterpolation(copy, variables);
+            whileDefnode.getParentNode().appendChild(copy, last);
+            lastList.add(copy);
+            copy.traverse();
         }
 
-        after = next;
+        int i = lastList.size() - 1;
+        boolean foundIt = false;
+        while ((i >= 0) && (foundIt == false)) {
+            Node n = lastList.get(i);
+            if (whileDefnode.getParentNode().equals(n.getParentNode())) {
+                last = n;
+                foundIt = true;
+            }
+            i--;
+        }
+
+        if (i < 0) {
+            last = whileDefnode;
+        }
+
+        return last;
     }
 }
