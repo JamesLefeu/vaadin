@@ -910,7 +910,7 @@ void media() :
   <MEDIA_SYM> ( <S> )*
    mediaStatement(ml)
    { start = true; documentHandler.startMedia(ml); }
-   <LBRACE> ( <S> )* ( debuggingDirective() | styleRule() | skipUnknownRule() )* <RBRACE> ( <S> )*
+   <LBRACE> ( <S> )* ( debuggingDirective() | LOOKAHEAD(styleRule()) styleRule() | LOOKAHEAD(skipUnknownRule()) skipUnknownRule() )* <RBRACE> ( <S> )*
  } catch (ParseException e) {
      reportError(getLocator(), e);
      skipStatement();
@@ -1324,7 +1324,7 @@ String _class(String pred) :
 String s = ".";
 }
 {
-  "." (t = <IDENT>{s += t.image; }|t =  < INTERPOLATION >{ s += t.image; })+
+  "." (t = <IDENT>{s += t.image; }|t =  < INTERPOLATION >{ s += t.image; }|t =  "-"{ s += t.image; })+
       { 
 	  
 	  if (pred == null) {
@@ -1341,7 +1341,7 @@ String s = ".";
 String element_name() :
 {Token t; String s = "";}
 {
-    (t = <IDENT>{s += t.image; }|t = < INTERPOLATION >{ s += t.image; })+
+    (t = <IDENT>{s += t.image; }|t = < INTERPOLATION >{ s += t.image; }|t = "-"{ s += t.image; })+
     { 
       return s; 
     }
