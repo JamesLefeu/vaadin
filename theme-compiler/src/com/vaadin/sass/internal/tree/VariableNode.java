@@ -18,17 +18,19 @@ package com.vaadin.sass.internal.tree;
 
 import java.util.ArrayList;
 
+import org.w3c.css.sac.LexicalUnit;
+
 import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.expression.ArithmeticExpressionEvaluator;
 import com.vaadin.sass.internal.parser.LexicalUnitImpl;
-import com.vaadin.sass.internal.util.StringUtil;
+import com.vaadin.sass.internal.parser.ReturnNodeException;
 import com.vaadin.sass.internal.visitor.VariableNodeHandler;
 
 public class VariableNode extends Node implements IVariableNode {
     private static final long serialVersionUID = 7003372557547748734L;
 
     private String name;
-    private LexicalUnitImpl expr;
+    protected LexicalUnitImpl expr;
     private boolean guarded;
 
     public VariableNode(String name, LexicalUnitImpl expr, boolean guarded) {
@@ -74,15 +76,19 @@ public class VariableNode extends Node implements IVariableNode {
         for (final VariableNode node : variables) {
             if (!equals(node)) {
 
-                if (StringUtil
-                        .containsVariable(expr.toString(), node.getName())) {
-                    if (expr.getParameters() != null
-                            && StringUtil.containsVariable(expr.getParameters()
-                                    .toString(), node.getName())) {
-                        replaceValues(expr.getParameters(), node);
-                    } else if (expr.getLexicalUnitType() == LexicalUnitImpl.SCSS_VARIABLE) {
-                        replaceValues(expr, node);
+                // We don't want to call "toString()" on a function until it's
+                // evaluated. Also, we need to iterate through the chain of
+                // "next" parameters in certain cases even when there isn't a
+                // function. So, it seems perhaps best to simply iterate through
+                // the entire list.
+                LexicalUnitImpl iter = expr;
+                while (iter != null) {
+                    if (expr.getParameters() != null) {
+                        replaceValues(iter.getParameters(), node);
+                    } else if (iter.getLexicalUnitType() == LexicalUnitImpl.SCSS_VARIABLE) {
+                        replaceValues(iter, node);
                     }
+                    iter = iter.getNextLexicalUnit();
                 }
             }
         }
@@ -90,10 +96,18 @@ public class VariableNode extends Node implements IVariableNode {
 
     private void replaceValues(LexicalUnitImpl unit, VariableNode node) {
         while (unit != null) {
-
-            if (unit.getLexicalUnitType() == LexicalUnitImpl.SCSS_VARIABLE
-                    && unit.getValue().toString().equals(node.getName())) {
-                LexicalUnitImpl.replaceValues(unit, node.getExpr());
+            switch (unit.getLexicalUnitType()) {
+            case LexicalUnitImpl.SCSS_VARIABLE:
+                if (unit.getValue().toString().equals(node.getName())
+                        || unit.getStringValue().equals(node.getName())) {
+                    LexicalUnitImpl.replaceValues(unit, node.getExpr());
+                }
+                break;
+            case LexicalUnit.SAC_FUNCTION:
+                replaceValues(unit.getParameters(), node);
+                break;
+            default:
+                break;
             }
 
             unit = unit.getNextLexicalUnit();
@@ -101,7 +115,7 @@ public class VariableNode extends Node implements IVariableNode {
     }
 
     @Override
-    public void traverse() {
+    public void traverse() throws ReturnNodeException {
         /*
          * "replaceVariables(ScssStylesheet.getVariables());" seems duplicated
          * and can be extracted out of if, but it is not.

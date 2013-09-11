@@ -27,34 +27,39 @@ import java.io.Serializable;
 
 import org.w3c.css.sac.LexicalUnit;
 
+import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.expression.exception.IncompatibleUnitsException;
 import com.vaadin.sass.internal.util.ColorUtil;
 import com.vaadin.sass.internal.util.DeepCopy;
+import com.vaadin.sass.internal.visitor.FunctionNodeHandler;
 
 /**
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  * @author Philippe Le Hegaret
  * 
  * @modified Sebastian Nyholm @ Vaadin Ltd
+ * @modified James Lefeu @ Liferay, Inc.
  */
 public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         Serializable {
     private static final long serialVersionUID = -6649833716809789399L;
 
-    LexicalUnitImpl prev;
-    LexicalUnitImpl next;
+    private LexicalUnitImpl prev;
+    private LexicalUnitImpl next;
+    private LexicalUnitImpl result;
 
-    short type;
-    int line;
-    int column;
+    private short type;
+    private int line;
+    private int column;
 
-    int i;
-    float f;
-    short dimension;
-    String sdimension;
-    String s;
-    String fname;
-    LexicalUnitImpl params;
+    private int i;
+    private float f;
+    private short dimension;
+    private String sdimension;
+    private String s;
+    private String fname;
+    private LexicalUnitImpl params;
+    private boolean functionEvaluated;
 
     LexicalUnitImpl(short type, int line, int column, LexicalUnitImpl p) {
         if (p != null) {
@@ -64,12 +69,20 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         this.line = line;
         this.column = column - 1;
         this.type = type;
+        functionEvaluated = false;
     }
 
     LexicalUnitImpl(int line, int column, LexicalUnitImpl previous, int i) {
         this(SAC_INTEGER, line, column, previous);
         this.i = i;
         f = i;
+    }
+
+    public LexicalUnitImpl(int line, int column, LexicalUnitImpl previous,
+            float f) {
+        this(SAC_REAL, line, column, previous);
+        this.f = f;
+        i = (int) f;
     }
 
     LexicalUnitImpl(int line, int column, LexicalUnitImpl previous,
@@ -85,6 +98,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
             String s) {
         this(type, line, column, previous);
         this.s = s;
+        functionEvaluated = false;
     }
 
     LexicalUnitImpl(short type, int line, int column, LexicalUnitImpl previous,
@@ -92,6 +106,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         this(type, line, column, previous);
         this.fname = fname;
         this.params = params;
+        functionEvaluated = false;
     }
 
     public int getLineNumber() {
@@ -228,6 +243,12 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         short type = getLexicalUnitType();
         String text = null;
         switch (type) {
+        case SCSS_OPERATOR_LEFT_PAREN:
+            text = "(";
+            break;
+        case SCSS_OPERATOR_RIGHT_PAREN:
+            text = ")";
+            break;
         case SCSS_VARIABLE:
             text = "$" + s;
             break;
@@ -295,13 +316,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         case LexicalUnit.SAC_HERTZ:
         case LexicalUnit.SAC_KILOHERTZ:
         case LexicalUnit.SAC_DIMENSION:
-            float f = getFloatValue();
-            int i = (int) f;
-            if ((i) == f) {
-                text = i + getDimensionUnitText();
-            } else {
-                text = f + getDimensionUnitText();
-            }
+            text = floatInt2String(this);
             break;
         case LexicalUnit.SAC_URI:
             text = "url(" + getStringValue() + ")";
@@ -313,28 +328,43 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         case LexicalUnit.SAC_FUNCTION:
             String funcName = getFunctionName();
             LexicalUnitImpl firstParam = getParameters();
-            if ("round".equals(funcName)) {
-                firstParam
-                        .setFloatValue(Math.round(firstParam.getFloatValue()));
-                text = firstParam.toString();
-            } else if ("ceil".equals(funcName)) {
-                firstParam.setFloatValue((float) Math.ceil(firstParam
-                        .getFloatValue()));
-                text = firstParam.toString();
-            } else if ("floor".equals(funcName)) {
-                firstParam.setFloatValue((float) Math.floor(firstParam
-                        .getFloatValue()));
-                text = firstParam.toString();
-            } else if ("abs".equals(funcName)) {
-                firstParam.setFloatValue(Math.abs(firstParam.getFloatValue()));
-                text = firstParam.toString();
-            } else if ("darken".equals(funcName)) {
-                LexicalUnitImpl dark = ColorUtil.darken(this);
-                text = dark.toString();
-            } else if ("lighten".equals(funcName)) {
-                text = ColorUtil.lighten(this).toString();
+            LexicalUnitImpl builtInFunction = evaluateBuiltInFunction(this);
+
+            if (builtInFunction != null) {
+                text = builtInFunction.toString();
+            } else if (ScssStylesheet.getFunctionDefinition(funcName) != null) {
+
+                /*
+                 * Because of variable scoping, evaluating the custom function
+                 * only works during compile phase. But, the value should be
+                 * calculated and stored during compile phase. So, afterwards,
+                 * the pre-calculated value is grabbed instead. Ideally, all
+                 * functions should have been evaluated and replaced with a
+                 * LexicalUnitImpl of another type by the end of the compile
+                 * phase. But, just in case someone wanted to keep a function
+                 * object which maps the functionName, params, and pre-cached
+                 * result, this is in place.
+                 */
+                if (functionEvaluated == false) {
+                    // evaluate the custom function
+
+                    try {
+                        text = FunctionNodeHandler.evaluateFunctionToString(
+                                funcName, firstParam);
+                    } catch (Exception e) {
+                        text = e.toString();
+                        e.printStackTrace();
+                    }
+                } else {
+                    // pre-calculated value
+                    if (result != null) {
+                        text = result.toString();
+                    } else {
+                        text = funcName + "(" + firstParam + ")";
+                    }
+                }
             } else {
-                text = getFunctionName() + "(" + getParameters() + ")";
+                text = funcName + "(" + firstParam + ")";
             }
             break;
         case LexicalUnit.SAC_IDENT:
@@ -373,6 +403,9 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
                 && denominator.getLexicalUnitType() != SAC_REAL
                 && getLexicalUnitType() != denominator.getLexicalUnitType()) {
             throw new IncompatibleUnitsException(toString());
+        }
+        if (denominator.getFloatValue() == 0.0) {
+            throw new ParseException("Divide by zero is not allowed");
         }
         setFloatValue(getFloatValue() / denominator.getFloatValue());
         if (getLexicalUnitType() == denominator.getLexicalUnitType()) {
@@ -704,7 +737,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
 
     public static LexicalUnitImpl createRightParenthesis(int line, int column,
             LexicalUnitImpl previous) {
-        return new LexicalUnitImpl(SCSS_OPERATOR_LEFT_PAREN, line, column,
+        return new LexicalUnitImpl(SCSS_OPERATOR_RIGHT_PAREN, line, column,
                 previous);
     }
 
@@ -733,8 +766,24 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         }
     }
 
+    public boolean getFunctionEvaluated() {
+        return functionEvaluated;
+    }
+
+    public void setFunctionEvaluated(boolean status) {
+        functionEvaluated = status;
+    }
+
     public void setFunctionName(String functionName) {
         fname = functionName;
+    }
+
+    public LexicalUnitImpl getFunctionResult() {
+        return result;
+    }
+
+    public void setFunctionResult(LexicalUnitImpl result) {
+        this.result = result;
     }
 
     public static LexicalUnitImpl createIdent(String s) {
@@ -753,5 +802,49 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
             unit.setParameters(replaceWith.getParameters());
         }
 
+    }
+
+    public static LexicalUnitImpl evaluateBuiltInFunction(
+            LexicalUnitImpl function) {
+        String funcName = function.getFunctionName();
+        LexicalUnitImpl firstParam = function.getParameters();
+        LexicalUnitImpl retVal = null;
+        if ("round".equals(funcName)) {
+            firstParam.setFloatValue(Math.round(firstParam.getFloatValue()));
+            retVal = firstParam;
+        } else if ("ceil".equals(funcName)) {
+            firstParam.setFloatValue((float) Math.ceil(firstParam
+                    .getFloatValue()));
+            retVal = firstParam;
+        } else if ("floor".equals(funcName)) {
+            firstParam.setFloatValue((float) Math.floor(firstParam
+                    .getFloatValue()));
+            retVal = firstParam;
+        } else if ("abs".equals(funcName)) {
+            firstParam.setFloatValue(Math.abs(firstParam.getFloatValue()));
+            retVal = firstParam;
+        } else if ("darken".equals(funcName)) {
+            retVal = ColorUtil.darken(function);
+        } else if ("lighten".equals(funcName)) {
+            retVal = ColorUtil.lighten(function);
+        }
+
+        if (retVal != null) {
+            retVal.setFunctionEvaluated(true);
+        }
+
+        return retVal;
+    }
+
+    public static String floatInt2String(LexicalUnitImpl item) {
+        String text = null;
+        float f = item.getFloatValue();
+        int i = (int) f;
+        if ((i) == f) {
+            text = i + item.getDimensionUnitText();
+        } else {
+            text = f + item.getDimensionUnitText();
+        }
+        return text;
     }
 }

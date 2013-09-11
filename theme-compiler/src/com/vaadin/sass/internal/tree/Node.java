@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import com.vaadin.sass.internal.parser.ReturnNodeException;
+
 public abstract class Node implements Serializable {
     private static final long serialVersionUID = 5914711715839294816L;
 
@@ -120,8 +122,10 @@ public abstract class Node implements Serializable {
      * more nodes at the same or later position in its parent and modify the
      * children of the node, but not modify or remove preceding nodes in its
      * parent.
+     * 
+     * @throws ReturnNodeException
      */
-    public abstract void traverse();
+    public abstract void traverse() throws ReturnNodeException;
 
     public Node getParentNode() {
         return parentNode;

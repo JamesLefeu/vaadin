@@ -5,7 +5,7 @@
 *limits:
 * 1. cannot mix arithmetic and css operations, e.g. "margin: 1px + 3px 2px" will fail
 * 2. space between add and minus operator and their following operand is mandatory. e.g. "1 + 2" is valid, "1+2" is not
-* 3. parenthesis is not supported now.  
+* 3. parenthesis support has been added.  
 */
 
 $div: 10px;

@@ -68,7 +68,8 @@ import com.vaadin.sass.internal.tree.*;
  * A CSS2 parser
  *
  * @author Philippe Le H�garet
- * @version $Revision: 1.15 $
+ * @modified James Lefeu @ Liferay, Inc.
+ * @version $Revision: 1.16 $
  */
 public class Parser implements org.w3c.css.sac.Parser {
 
@@ -574,11 +575,11 @@ TOKEN :
 {
     <TO         : "to">
     |<THROUGH   : "through">
-    |<EACH_IN        : "in">
+    |<EACH_IN   : "in">
     |<FROM      : "from">
 }
 
-/* DERECTIVES */
+/* DIRECTIVES */
 <DEFAULT>
 TOKEN :
 {
@@ -768,8 +769,10 @@ void afterImportDeclaration() :
 }
 {
   ( 
-     ( debuggingDirective() | mixinDirective() | controlDirective() | includeDirective() | styleRule() | media() 
-             | page() | fontFace() | keyframes() | LOOKAHEAD(variable()) variable() | listModifyDirective()
+     ( debuggingDirective() | mixinDirective() | functionDirective()
+         | controlDirective() | includeDirective() | styleRule() | media() 
+             | page() | fontFace() | keyframes() |
+              LOOKAHEAD(variable()) variable() | listModifyDirective()
       | { l = getLocator(); } ret=skipStatement() 
       {
 	  if ((ret == null) || (ret.length() == 0)) {
@@ -848,7 +851,7 @@ void keyframes() :
   n=<KEY_FRAME_SYM> ( <S> )* {keyframeName = n.image;}
   (n = <IDENT>{animationname += n.image; }|n = < INTERPOLATION >{ animationname += n.image; })+(<S>)*
    {start = true; documentHandler.startKeyFrames(keyframeName, animationname); }
-   <LBRACE> ( <S> )* ( keyframeSelector() )* <RBRACE> ( <S> )*
+   <LBRACE> ( <S> )* ( keyframeSelector() )* <RBRACE> (LOOKAHEAD(2) <S> )*
  } catch (ParseException e) {
      reportError(getLocator(), e);
      skipStatement();
@@ -909,7 +912,7 @@ void media() :
   <MEDIA_SYM> ( <S> )*
    mediaStatement(ml)
    { start = true; documentHandler.startMedia(ml); }
-   <LBRACE> ( <S> )* ( debuggingDirective() | styleRule() | skipUnknownRule() )* <RBRACE> ( <S> )*
+   <LBRACE> ( <S> )* ( debuggingDirective() | styleRule() | skipUnknownRule() )* <RBRACE> (LOOKAHEAD(2) <S> )*
  } catch (ParseException e) {
      reportError(getLocator(), e);
      skipStatement();
@@ -1116,7 +1119,6 @@ void microsoftExtension() :
   String name = "";
   String value = "";
 }
-
 {
   // This is not really taking the syntax of filter rules into account
   n = < MICROSOFT_RULE > (< S >)* { name = n.image; }
@@ -1155,7 +1157,7 @@ String property() :
 String variableName() :
 {Token n;}
 {
-    n=<VARIABLE> (<S>)* {return convertIdent(n.image.substring(1));}
+    n=<VARIABLE> (LOOKAHEAD(2) <S>)* {return convertIdent(n.image.substring(1));}
 }
 
 String functionName() :
@@ -1182,7 +1184,7 @@ void styleRule() :
      }
      // a CSS import here will not work
      ( ifContentStatement() | microsoftExtension() | importDeclaration() )*
-     <RBRACE> (<S>)*
+     <RBRACE> (LOOKAHEAD(2) <S>)*
  } catch (ThrowedParseException e) {
      if (errorHandler != null) {
 	 LocatorImpl li = new LocatorImpl(this,
@@ -1485,7 +1487,7 @@ void variable() :
 {
 	try{
 		name = variableName()
-		":" ( <S> )* exp=expr() ( guarded=guarded() )?(";"(<S>)*)+
+		":" ( <S> )* exp=expr() ( guarded=guarded() )?(";"(LOOKAHEAD(2) <S>)*)+
 		//raw=skipStatementUntilSemiColon()
 		{
 		    documentHandler.variable(name, exp, guarded);
@@ -1544,7 +1546,7 @@ void ifDirective() :
     documentHandler.ifDirective(evaluator);
    }
   ( ifContentStatement() )*
-  < RBRACE >(< S >)*
+  < RBRACE >(LOOKAHEAD(2) < S >)*
   (elseDirective())*
   { documentHandler.endIfElseDirective(); }
 }
@@ -1563,7 +1565,7 @@ void elseDirective() :
     else{ documentHandler.elseDirective(); }  
   }
   ( ifContentStatement() )*
-  < RBRACE >(< S >)*
+  < RBRACE >(LOOKAHEAD(2) < S >)*
 }
 
 String booleanExpressionToken() :
@@ -1597,7 +1599,7 @@ String booleanExpressionToken() :
    else{return s;}
  }
 }
-  
+
 void eachDirective() :
 {
   Token var;
@@ -1615,7 +1617,7 @@ void eachDirective() :
   )
   < LBRACE >(< S >)*
   ( ifContentStatement() )*	  
-  < RBRACE >(< S >)*
+  < RBRACE >(LOOKAHEAD(2) < S >)*
   { documentHandler.endEachDirective();}
 }
 
@@ -1631,6 +1633,23 @@ ArrayList<String > stringList():
 	(< COMMA >(< S >)* input = < IDENT > { strings.add(input.image); } (< S >)*)*
 	{ return strings; }
 
+}
+
+void functionDirective() :
+{
+    String name;
+    ArrayList<VariableNode> args = null;
+    String body;
+}
+{
+    <FUNCTION_SYM>
+    (<S>)*
+    (name = functionName() 
+      args = arglist()) <RPARAN> (<S>)* <LBRACE> (<S>)*
+    {documentHandler.startFunctionDirective(name, args);}
+    ( ifContentStatement() | fontFace() | page() | returnDirective())*
+    <RBRACE>(<S>)*
+    {documentHandler.endFunctionDirective(name, args);}
 }
 
 void mixinDirective() :
@@ -1666,13 +1685,20 @@ ArrayList<VariableNode> arglist() :
 }
 
 JAVACODE
-boolean checkMixinForNonOptionalArguments(VariableNode arg, boolean hasNonOptionalArguments){
+boolean checkMixinForNonOptionalArguments(VariableNode arg, boolean hasNonOptionalArguments)
+{
 	boolean currentArgHasArguments = arg.getExpr() != null && arg.getExpr().getLexicalUnitType() == LexicalUnitImpl.SCSS_VARIABLE && arg.getExpr().getNextLexicalUnit() != null;
-  	if(currentArgHasArguments)	{
-		if(hasNonOptionalArguments)		{			throw new ParseException("Sass Error: Required argument $"+ arg.getName() +" must come before any optional arguments.");
+  
+	if(currentArgHasArguments)
+	{
+		if(hasNonOptionalArguments)
+		{
+			throw new ParseException("Sass Error: Required argument $"+ arg.getName() +" must come before any optional arguments.");
 		}
 		return hasNonOptionalArguments;
-	}else	{	return true;
+	}else
+	{
+	return true;
 	}
 }
 
@@ -1687,12 +1713,16 @@ VariableNode mixinArg() :
 {
     name=variableName() (< COLON > (< S >)*
 
-    (      first = nonVariableTerm(null)      {
-        prev = first;      }
-	  (LOOKAHEAD(3)(< COMMA >(< S >)*)? prev = nonVariableTerm(prev))*	)
+    (
+      first = nonVariableTerm(null)
+      {
+        prev = first;
+      }
+	  (LOOKAHEAD(3)(< COMMA >(< S >)*)? prev = nonVariableTerm(prev))*
+	)
 	| (variable = < VARIABLE >{ first = LexicalUnitImpl.createVariable(token.beginLine, token.beginColumn,
                  prev, variable.image);}
-		
+
        )
     )?
     {
@@ -1727,11 +1757,11 @@ void includeDirective() :
     (name = property()|name = variableName(){ name = "$"+name;}
          |(name = functionName() 
            args = argValuelist()) <RPARAN>)
-    ((";"(<S>)*)+
+    ((";"(LOOKAHEAD(2) <S>)*)+
            {documentHandler.includeDirective(name, args);}
     | <LBRACE> (<S>)* {documentHandler.startIncludeContentBlock(name);}
       (styleRuleOrDeclarationOrNestedProperties())*
-      <RBRACE> (<S>)* {documentHandler.endIncludeContentBlock();}
+      <RBRACE> (LOOKAHEAD(2) <S>)* {documentHandler.endIncludeContentBlock();}
     )
 }
 
@@ -1782,7 +1812,7 @@ void listModifyDirective() :
           break;
       }
       }
-      (< S >)*< SEMICOLON >(<S>)*
+      (< S >)*< SEMICOLON >(LOOKAHEAD(2) <S>)*
 }
 
 
@@ -1876,49 +1906,80 @@ String listModifyDirectiveArgs(int nest)
 	{
 	        t = getToken(1);
 		String s = t.image;
-		if(t.kind == VARIABLE||t.kind == IDENT)		{
+		if(t.kind == VARIABLE||t.kind == IDENT)
+		{
 		  list += s;
-		}else if(s.toLowerCase().equals("auto")||s.toLowerCase().equals("space")||s.toLowerCase().equals("comma"))		{
+		}else if(s.toLowerCase().equals("auto")||s.toLowerCase().equals("space")||s.toLowerCase().equals("comma"))
+		{
 			int i = 2;
 			Token temp = getToken(i);
 			boolean isLast = true;
 			while(temp.kind != SEMICOLON)
-			{				if(temp.kind != RPARAN || temp.kind != S)
-				{				  isLast = false;				}
+			{
+				if(temp.kind != RPARAN || temp.kind != S)
+				{
+				  isLast = false;
+				}
 				i++;
 				temp = getToken(i);
 			}
 
-		  	if(isLast)		  	{			return list;
+		  	if(isLast)
+		  	{
+			return list;
 			}
-		}		else if(t.kind == STRING)		{			list += s.substring(1,s.length()).substring(0,s.length()-2);
+		}
+		else if(t.kind == STRING)
+		{
+			list += s.substring(1,s.length()).substring(0,s.length()-2);
 			
-		}else if(t.kind == LPARAN)		{			nesting++;
-			if(nesting > nest+1)			{				throw new CSSParseException("Only one ( ) pair per parameter allowed", getLocator());
+		}else if(t.kind == LPARAN)
+		{
+			nesting++;
+			if(nesting > nest+1)
+			{
+				throw new CSSParseException("Only one ( ) pair per parameter allowed", getLocator());
 			}
-		}else if(t.kind == RPARAN)		{			nesting--;
-			if(nesting == 0)			{
+		}else if(t.kind == RPARAN)
+		{
+			nesting--;
+			if(nesting == 0)
+			{
 				return list;
 			}
-		} else if(t.kind == COMMA)		{
-			if(nesting == nest)			{
-			  return list;			}else			{
-			  list += ",";			}
+		} else if(t.kind == COMMA)
+		{
+			if(nesting == nest)
+			{
+			  return list;
+			}else
+			{
+			  list += ",";
+			}
 			  
-		}else if(t.kind == S)		{
-		  list += " ";		} else if(t.kind == LBRACE)		{
-		  throw new CSSParseException("Invalid token,'{' found", getLocator());		}
-				getNextToken();
+		}else if(t.kind == S)
+		{
+		  list += " ";
+		} else if(t.kind == LBRACE)
+		{
+		  throw new CSSParseException("Invalid token,'{' found", getLocator());
+		}
+		
+		getNextToken();
 	}
 }
 
-Node returnDirective() :
+void returnDirective() :
 {
-    String raw;
+  	LexicalUnitImpl exp = null;
 }
 {
-	raw = skipStatement()
-	{return null;}
+    <RETURN_SYM>
+    (<S>)*
+    exp = expr()
+    ";"
+    (<S>)*
+    {documentHandler.returnDirective(exp);}
 }
 
 void debuggingDirective() :
@@ -1936,7 +1997,7 @@ void debugDirective() :
     // TODO should evaluate the content expression, call documentHandler.debugDirective() etc.
     System.out.println(content);
     }
-    (<S>)*
+    (LOOKAHEAD(2) <S>)*
 }
 
 void warnDirective() :
@@ -1948,7 +2009,7 @@ void warnDirective() :
     // TODO should evaluate the content expression, call documentHandler.warnDirective() etc.
     System.err.println(content);
     }
-    (<S>)*
+    (LOOKAHEAD(2) <S>)*
 }
 
 Node forDirective() :
@@ -1991,7 +2052,7 @@ void extendDirective() :
     <EXTEND_SYM>
     (<S>)*
     list = selectorList()
-    (";"(<S>)*)+
+    (";"(LOOKAHEAD(2) <S>)*)+
     {documentHandler.extendDirective(list);}
 }
 
@@ -2000,7 +2061,7 @@ void contentDirective() :
 {
     <CONTENT_SYM>
     (<S>)*
-    (";"(<S>)*)+
+    (";"(LOOKAHEAD(2) <S>)*)+
     {documentHandler.contentDirective();}
 }
 
@@ -2042,6 +2103,7 @@ LexicalUnit exp;}
     }
     (<S>)*
 }
+
 /**
  * @exception ParseException exception during the parse
  */
@@ -2115,7 +2177,7 @@ void declarationOrNestedProperties() :
          documentHandler.startNestedProperties(name);
      }
      ( declaration() )? ( ";" ( <S> )* ( declaration() )? )*
-     <RBRACE>(<S>)*
+     <RBRACE>(LOOKAHEAD(2) <S>)*
      {
          documentHandler.endNestedProperties(name);
      }
@@ -2210,7 +2272,7 @@ void declaration() :
 boolean prio() :
 {}
 {
-  <IMPORTANT_SYM> ( <S> )* { return true; }
+  <IMPORTANT_SYM> (LOOKAHEAD(2) <S> )* { return true; }
 }
 
 boolean guarded() :
@@ -2232,7 +2294,7 @@ LexicalUnitImpl operator(LexicalUnitImpl prev) :
 *limits:
 * 1. cannot mix arithmetic and css operations, e.g. "margin: 1px + 3px 2px" will fail
 * 2. space between add and minus operator and their following operand is mandatory. e.g. "1 + 2" is valid, "1+2" is not
-* 3. parenthesis is not supported now.  
+* 3. parenthesis support has been added.
 */
 n="," ( <S> )* { return LexicalUnitImpl.createComma(n.beginLine, 
             n.beginColumn,
@@ -2261,18 +2323,136 @@ n="," ( <S> )* { return LexicalUnitImpl.createComma(n.beginLine,
         prev); }
 }
 
+LexicalUnitImpl lparens(LexicalUnitImpl prev) :
+{
+  LexicalUnitImpl result = null;
+}
+{
+  "(" (<S>)*
+  {
+    result = LexicalUnitImpl.createLeftParenthesis(token.beginLine, token.beginColumn,
+               prev); 
+    return result;
+  }
+}
+
+LexicalUnitImpl rparens(int parensCount, LexicalUnitImpl prev) :
+{
+  LexicalUnitImpl result = null;
+}
+{
+  ")" (<S>)*
+  {
+    parensCount--;
+    if (parensCount < 0) {      throw new ParseException("Sass Error: Too Many RightParentheses in Expression. Value: "+ parensCount);    }
+    result = LexicalUnitImpl.createRightParenthesis(token.beginLine, token.beginColumn,
+                prev); 
+    return result;  }
+}
+
+LexicalUnitImpl lrparens(int parensCount, LexicalUnitImpl prev) :
+{
+  LexicalUnitImpl result = null;
+}
+{
+  result=lparens(prev)
+| result=rparens(parensCount, prev)
+  {
+
+    return result;
+  }}
+LexicalUnitImpl exprElement(LexicalUnitImpl first) :
+{
+    LexicalUnitImpl res;
+    int parensCount = 0;
+}
+{
+  LOOKAHEAD(3)
+  (
+    (res=lparens(first){parensCount++;})
+    res=exprElement(res)
+    (res=rparens(parensCount, res){parensCount--;})
+  )
+|
+  (
+    (res=lparens(first){parensCount++;})
+    (      res=exprElement(res)
+  |   res=term(res)
+    )
+    (
+      (res=operator(res))
+      (        res=exprElement(res)
+    |   res=term(res)
+      )
+    )+
+    (res=rparens(parensCount, res){parensCount--;})
+  )
+  {
+    if (parensCount != 0) {
+      throw new ParseException("Sass Error: Unbalanced Parentheses in Expression. Value: "+ parensCount);
+    }
+
+    return res;
+  }
+}
+
+LexicalUnitImpl simpleExpr() :
+{
+    LexicalUnitImpl first, res;
+}
+{
+  first=term(null){ res = first; }
+  ( LOOKAHEAD(2) ( LOOKAHEAD(2) res=operator(res) )? res=term(res))*
+  {
+    return first;
+  }
+}
+
+LexicalUnitImpl complexExpr() :
+{
+  LexicalUnitImpl first, res;
+}
+{
+  (
+    first=term(null){ res = first; }
+  | first=exprElement(null){ res = first; }
+  )
+  (
+    LOOKAHEAD(2)
+    (res=operator(res))
+    (
+      res=exprElement(res)
+  |   res=term(res)
+    )
+  )+
+  {
+    while (first.getPreviousLexicalUnit() != null){      first = first.getPreviousLexicalUnit();
+    }
+    return first;
+  }
+}
+
 /**
  * @exception ParseException exception during the parse
  */
 LexicalUnitImpl expr() :
 {
-    LexicalUnitImpl first, res;
-    char op;
+  LexicalUnitImpl first;
 }
 {
-    first=term(null){ res = first; }
-    ( LOOKAHEAD(2) ( LOOKAHEAD(2) res=operator(res) )? res=term(res))*
-  { return first; }
+  (
+    LOOKAHEAD(simpleExpr())
+    (
+      first=simpleExpr()
+    )
+  |
+    LOOKAHEAD(complexExpr())
+    (      first=complexExpr()
+    )
+  )
+  {
+    return first;
+  }
 }
 
 /**
@@ -2289,25 +2469,30 @@ char unaryOperator() :
  * @exception ParseException exception during the parse
  */
 LexicalUnitImpl term(LexicalUnitImpl prev) :
-{ LexicalUnitImpl result = null;
-  Token n = null;
-  char op = ' ';
+{
+  LexicalUnitImpl result = null;
 }
 {
   (result = nonVariableTerm(prev)| result = variableTerm(prev))
-      {
-	  return result;
-      }
+  {
+    return result;
+  }
 }
 
-LexicalUnitImpl variableTerm(LexicalUnitImpl prev) :{
+LexicalUnitImpl variableTerm(LexicalUnitImpl prev) :
+{
   LexicalUnitImpl result = null;
-  String varName = "";}{
+  String varName = "";
+}
+{
   varName = variableName()
          {result = LexicalUnitImpl.createVariable(token.beginLine, token.beginColumn,
-                 prev, varName); return result;}}
+                 prev, varName); return result;}
+}
 
-LexicalUnitImpl nonVariableTerm(LexicalUnitImpl prev) :{LexicalUnitImpl result = null;
+LexicalUnitImpl nonVariableTerm(LexicalUnitImpl prev) :
+{
+LexicalUnitImpl result = null;
   Token n = null;
   char op = ' ';
   String varName;
@@ -2427,9 +2612,11 @@ LexicalUnitImpl nonVariableTerm(LexicalUnitImpl prev) :{LexicalUnitImpl result
 	| result=hexcolor(prev)	
         | result=url(prev)
 	| result=unicode(prev)
-         ) ) ( <S> )*
+         ) ) (LOOKAHEAD(2) <S> )*
   {
-    return result;  }}
+    return result;
+  }
+}
 
 /**
  * Handle all CSS2 functions.

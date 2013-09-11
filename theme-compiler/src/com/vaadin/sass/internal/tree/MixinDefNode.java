@@ -25,9 +25,9 @@ import com.vaadin.sass.internal.util.DeepCopy;
 public class MixinDefNode extends Node implements IVariableNode {
     private static final long serialVersionUID = 5469294053247343948L;
 
-    private String name;
-    private ArrayList<VariableNode> arglist;
-    private String body;
+    protected String name;
+    protected ArrayList<VariableNode> arglist;
+    protected String body;
 
     public MixinDefNode(String name, Collection<VariableNode> args) {
         super();
@@ -96,7 +96,7 @@ public class MixinDefNode extends Node implements IVariableNode {
         return findAndReplaceContentNodeInChildren(this, mixinNode);
     }
 
-    private MixinDefNode findAndReplaceContentNodeInChildren(Node node,
+    protected MixinDefNode findAndReplaceContentNodeInChildren(Node node,
             MixinNode mixinNode) {
         ContentNode contentNode = null;
         for (Node child : new ArrayList<Node>(node.getChildren())) {
