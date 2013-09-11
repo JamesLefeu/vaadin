@@ -34,7 +34,9 @@ import com.vaadin.sass.internal.tree.MixinDefNode;
 import com.vaadin.sass.internal.tree.MixinNode;
 import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.controldirective.EachDefNode;
+import com.vaadin.sass.internal.tree.controldirective.ForNode;
 import com.vaadin.sass.internal.tree.controldirective.IfElseDefNode;
+import com.vaadin.sass.internal.tree.controldirective.WhileDefNode;
 
 public class ControlDirectives extends AbstractTestBase {
 
@@ -51,22 +53,31 @@ public class ControlDirectives extends AbstractTestBase {
         Assert.assertNotNull(root);
 
         ArrayList<Node> children = root.getChildren();
-        Assert.assertEquals(8, root.getChildren().size());
+        Assert.assertEquals(14, root.getChildren().size());
 
         Assert.assertTrue(children.get(1) instanceof MixinDefNode);
         Assert.assertTrue(children.get(2) instanceof MixinNode);
         Assert.assertTrue(children.get(3) instanceof BlockNode);
         Assert.assertTrue(children.get(4) instanceof BlockNode);
-        Assert.assertTrue(children.get(5) instanceof BlockNode);
-        Assert.assertTrue(children.get(7) instanceof MixinDefNode);
+        Assert.assertTrue(children.get(6) instanceof ForNode);
+        Assert.assertTrue(children.get(8) instanceof EachDefNode);
+        Assert.assertTrue(children.get(9) instanceof ForNode);
+        Assert.assertTrue(children.get(10) instanceof MixinDefNode);
+        Assert.assertTrue(children.get(13) instanceof WhileDefNode);
 
         Assert.assertTrue(children.get(1).getChildren().get(0) instanceof EachDefNode);
         Assert.assertTrue(children.get(3).getChildren().get(0) instanceof IfElseDefNode);
         Assert.assertTrue(children.get(4).getChildren().get(0) instanceof IfElseDefNode);
-        Assert.assertTrue(!(children.get(7).getChildren().get(0) instanceof IfElseDefNode));
+        Assert.assertTrue(!(children.get(10).getChildren().get(0) instanceof IfElseDefNode));
 
         Assert.assertEquals(1, children.get(1).getChildren().size());
 
+        Assert.assertNotNull(((ForNode) children.get(6)).getFrom());
+        Assert.assertNotNull(((ForNode) children.get(6)).getTo());
+        Assert.assertNotNull(((ForNode) children.get(6)).getChildren());
+        Assert.assertNotNull(((ForNode) children.get(9)).getFrom());
+        Assert.assertNotNull(((ForNode) children.get(9)).getTo());
+        Assert.assertNotNull(((ForNode) children.get(9)).getChildren());
     }
 
     @Test

@@ -25,10 +25,7 @@ import org.w3c.css.sac.SACMediaList;
 
 import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.parser.LexicalUnitImpl;
-import com.vaadin.sass.internal.tree.ForNode;
 import com.vaadin.sass.internal.tree.VariableNode;
-import com.vaadin.sass.internal.tree.WhileNode;
-import com.vaadin.sass.internal.tree.controldirective.EachDefNode;
 
 public interface SCSSDocumentHandler extends DocumentHandler {
     ScssStylesheet getStyleSheet();
@@ -41,11 +38,6 @@ public interface SCSSDocumentHandler extends DocumentHandler {
 
     void debugDirective();
 
-    ForNode forDirective(String var, String from, String to, boolean exclusive,
-            String body);
-
-    WhileNode whileDirective(String condition, String body);
-
     void startNestedProperties(String name);
 
     void endNestedProperties(String name);
@@ -57,9 +49,20 @@ public interface SCSSDocumentHandler extends DocumentHandler {
     void property(String name, LexicalUnitImpl value, boolean important,
             String comment);
 
-    EachDefNode startEachDirective(String variable, ArrayList<String> list);
+    void startForDirective(String var, LexicalUnitImpl from,
+            LexicalUnitImpl to, boolean inclusive);
+
+    void endForDirective();
+
+    void startEachDirective(String variable, ArrayList<String> list);
 
     void endEachDirective();
+
+    void startWhileDirective();
+
+    void endWhileDirective();
+
+    void whileDirective(String evaluator);
 
     void startIfElseDirective();
 
@@ -77,7 +80,7 @@ public interface SCSSDocumentHandler extends DocumentHandler {
 
     void microsoftDirective(String name, String value);
 
-    EachDefNode startEachDirective(String var, String listVariable);
+    void startEachDirective(String var, String listVariable);
 
     void removeDirective(String variable, String list, String remove,
             String separator);
