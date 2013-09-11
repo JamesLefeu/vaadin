@@ -39,12 +39,15 @@ public interface SCSSDocumentHandler extends DocumentHandler {
 
     void endMixinDirective(String name, Collection<VariableNode> args);
 
+    void startFunctionDirective(String name, Collection<VariableNode> args);
+
+    void endFunctionDirective(String name, Collection<VariableNode> args);
+
     void debugDirective();
 
-    ForNode forDirective(String var, String from, String to, boolean exclusive,
-            String body);
+    void startReturnDirective();
 
-    WhileNode whileDirective(String condition, String body);
+    void endReturnDirective();
 
     void startNestedProperties(String name);
 
