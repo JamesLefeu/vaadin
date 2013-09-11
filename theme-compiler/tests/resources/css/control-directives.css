@@ -34,6 +34,22 @@
 	border: 1px solid;
 }
 
+.for-1 {
+	width: 61px;
+}
+
+.for-2 {
+	width: 62px;
+}
+
+.for-3 {
+	width: 63px;
+}
+
+.for-4 {
+	width: 64px;
+}
+
 .falseIfTrueElse {
 	border: 1px solid;
 }
@@ -48,4 +64,32 @@
 
 .circle-icon {
 	background-image: url('/images/circle.png');
+}
+
+.for-1 {
+	width: 71px;
+}
+
+.for-2 {
+	width: 72px;
+}
+
+.for-3 {
+	width: 73px;
+}
+
+.while-4 {
+	width: 24px;
+}
+
+.while-3 {
+	width: 23px;
+}
+
+.while-2 {
+	width: 22px;
+}
+
+.while-1 {
+	width: 21px;
 }

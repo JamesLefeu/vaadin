@@ -56,7 +56,7 @@ public class EachNodeHandler {
         defNode.getParentNode().removeChild(defNode);
     }
 
-    private static void replaceInterpolation(Node copy,
+    protected static void replaceInterpolation(Node copy,
             ArrayList<VariableNode> variables) {
         if (copy instanceof IVariableNode) {
             IVariableNode n = (IVariableNode) copy;
