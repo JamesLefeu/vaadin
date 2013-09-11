@@ -32,9 +32,8 @@ import com.vaadin.sass.internal.tree.BlockNode;
 import com.vaadin.sass.internal.tree.CommentNode;
 import com.vaadin.sass.internal.tree.ContentNode;
 import com.vaadin.sass.internal.tree.ExtendNode;
-import com.vaadin.sass.internal.tree.ReturnNode;
 import com.vaadin.sass.internal.tree.FontFaceNode;
-import com.vaadin.sass.internal.tree.ForNode;
+import com.vaadin.sass.internal.tree.FunctionDefNode;
 import com.vaadin.sass.internal.tree.ImportNode;
 import com.vaadin.sass.internal.tree.KeyframeSelectorNode;
 import com.vaadin.sass.internal.tree.KeyframesNode;
@@ -45,14 +44,12 @@ import com.vaadin.sass.internal.tree.MediaNode;
 import com.vaadin.sass.internal.tree.MicrosoftRuleNode;
 import com.vaadin.sass.internal.tree.MixinDefNode;
 import com.vaadin.sass.internal.tree.MixinNode;
-import com.vaadin.sass.internal.tree.FunctionDefNode;
-import com.vaadin.sass.internal.tree.FunctionNode;
 import com.vaadin.sass.internal.tree.NestPropertiesNode;
 import com.vaadin.sass.internal.tree.Node;
+import com.vaadin.sass.internal.tree.ReturnNode;
 import com.vaadin.sass.internal.tree.RuleNode;
 import com.vaadin.sass.internal.tree.SimpleNode;
 import com.vaadin.sass.internal.tree.VariableNode;
-import com.vaadin.sass.internal.tree.WhileNode;
 import com.vaadin.sass.internal.tree.controldirective.EachDefNode;
 import com.vaadin.sass.internal.tree.controldirective.ElseNode;
 import com.vaadin.sass.internal.tree.controldirective.IfElseDefNode;
@@ -108,14 +105,6 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
     }
 
     @Override
-    public ForNode forDirective(String var, String from, String to,
-            boolean exclusive, String body) {
-        ForNode node = new ForNode(var, from, to, exclusive, body);
-        System.out.println(node);
-        return node;
-    }
-
-    @Override
     public EachDefNode startEachDirective(String var, ArrayList<String> list) {
         EachDefNode node = new EachDefNode(var, list);
         nodeStack.peek().appendChild(node);
@@ -134,13 +123,6 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
     @Override
     public void endEachDirective() {
         nodeStack.pop();
-    }
-
-    @Override
-    public WhileNode whileDirective(String condition, String body) {
-        WhileNode node = new WhileNode(condition, body);
-        System.out.println(node);
-        return node;
     }
 
     @Override
@@ -258,7 +240,8 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
     }
 
     @Override
-    public void startFunctionDirective(String name, Collection<VariableNode> args) {
+    public void startFunctionDirective(String name,
+            Collection<VariableNode> args) {
         FunctionDefNode node = new FunctionDefNode(name.trim(), args);
         nodeStack.peek().appendChild(node);
         nodeStack.push(node);

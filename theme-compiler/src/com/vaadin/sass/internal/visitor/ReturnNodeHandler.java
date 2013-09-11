@@ -24,11 +24,11 @@ import org.apache.commons.jexl2.Expression;
 import org.apache.commons.jexl2.JexlEngine;
 import org.apache.commons.jexl2.JexlException;
 import org.w3c.flute.parser.ParseException;
-import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 
+import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.ReturnNode;
-import com.vaadin.sass.internal.parser.LexicalUnitImpl;
+import com.vaadin.sass.internal.tree.controldirective.IfElseDefNode;
 
 /**
  * @version $Revision: 1.0 $
@@ -64,23 +64,22 @@ public class ReturnNodeHandler {
             expression = replaceStrings(expression);
             Expression e = evaluator.createExpression(expression);
             try {
-                //do we need to worry about numerical error?
-                //changing to double requires a refactor of LexicalUnitImpl...
-                Float eval = (Float)e.evaluate(null);
-                retVal = new LexicalUnitImpl(0,0,null,eval);
+                // do we need to worry about numerical error?
+                // changing to double requires a refactor of LexicalUnitImpl...
+                Float eval = (Float) e.evaluate(null);
+                retVal = new LexicalUnitImpl(0, 0, null, eval);
             } catch (ClassCastException ex) {
                 throw new ParseException(
                         "Invalid @return in scss file, not a boolean expression : "
-                                + child.toString());
+                                + expression + ", " + e.toString());
             } catch (NullPointerException ex) {
                 throw new ParseException(
                         "Invalid @return in scss file, not a boolean expression : "
-                                + child.toString());
+                                + expression + ", " + e.toString());
             }
         } catch (JexlException e) {
-            throw new ParseException(
-                    "Invalid @return in scss file for "
-                            + child.toString());
+            throw new ParseException("Invalid @return in scss file for "
+                    + expression);
         }
         return retVal;
     }
@@ -103,7 +102,10 @@ public class ReturnNodeHandler {
     private static void replaceDefNodeWithCorrectChild(IfElseDefNode defNode,
             Node parent, final Node child) {
         for (final Node n : new ArrayList<Node>(child.getChildren())) {
-            parent.appendChild(n, defNode);//won't this append the children in reverse order? =defNode, lastChild, 2ndLastChild, ... , 1stChild
+            parent.appendChild(n, defNode);// won't this append the children in
+                                           // reverse order? =defNode,
+                                           // lastChild, 2ndLastChild, ... ,
+                                           // 1stChild
         }
     }
 }

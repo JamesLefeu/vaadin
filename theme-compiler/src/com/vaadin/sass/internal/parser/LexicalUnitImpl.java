@@ -31,7 +31,6 @@ import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.expression.exception.IncompatibleUnitsException;
 import com.vaadin.sass.internal.util.ColorUtil;
 import com.vaadin.sass.internal.util.DeepCopy;
-import com.vaadin.sass.internal.tree.FunctionDefNode;
 import com.vaadin.sass.internal.visitor.FunctionNodeHandler;
 
 /**
@@ -76,12 +75,12 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         f = i;
     }
 
-    LexicalUnitImpl(int line, int column, LexicalUnitImpl previous, float f) {
+    public LexicalUnitImpl(int line, int column, LexicalUnitImpl previous,
+            float f) {
         this(SAC_REAL, line, column, previous);
         this.f = f;
-        this.i = (int) f;
+        i = (int) f;
     }
-
 
     LexicalUnitImpl(int line, int column, LexicalUnitImpl previous,
             short dimension, String sdimension, float f) {
@@ -344,12 +343,16 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
                 text = dark.toString();
             } else if ("lighten".equals(funcName)) {
                 text = ColorUtil.lighten(this).toString();
-            } else if 
-                (ScssStylesheet.getFunctionDefinition(funcName) != null) {
+            } else if (ScssStylesheet.getFunctionDefinition(funcName) != null) {
 
-                //evaluate the custom function
-                text = FunctionNodeHandler.evaluateFunction(
-                    funcName, firstParam);
+                // evaluate the custom function
+                try {
+                    text = FunctionNodeHandler.evaluateFunction(funcName,
+                            firstParam);
+                } catch (Exception e) {
+                    text = e.toString();
+                    e.printStackTrace();
+                }
             } else {
                 text = getFunctionName() + "(" + getParameters() + ")";
             }

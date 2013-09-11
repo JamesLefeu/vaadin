@@ -16,13 +16,12 @@
 
 package com.vaadin.sass.internal.tree;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
-import com.vaadin.sass.internal.tree.MixinNode;
+import com.vaadin.sass.internal.ScssStylesheet;
+import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 import com.vaadin.sass.internal.visitor.FunctionNodeHandler;
-
 
 /**
  * @version $Revision: 1.0 $
@@ -33,12 +32,12 @@ public class FunctionNode extends MixinNode implements IVariableNode {
     private boolean isFunctionNode;
 
     public FunctionNode(String name) {
-        super();
+        super(name);
         isFunctionNode = true;
     }
 
     public FunctionNode(String name, Collection<LexicalUnitImpl> args) {
-        super();
+        super(name, args);
         isFunctionNode = true;
     }
 

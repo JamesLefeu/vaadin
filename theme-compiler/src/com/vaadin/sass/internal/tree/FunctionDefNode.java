@@ -16,13 +16,7 @@
 
 package com.vaadin.sass.internal.tree;
 
-import java.util.ArrayList;
 import java.util.Collection;
-
-import com.vaadin.sass.internal.ScssStylesheet;
-import com.vaadin.sass.internal.util.DeepCopy;
-
-import com.vaadin.sass.internal.tree.MixinDefNode;
 
 /**
  * @version $Revision: 1.0 $
@@ -32,9 +26,8 @@ public class FunctionDefNode extends MixinDefNode implements IVariableNode {
     private static final long serialVersionUID = 5469294053247343949L;
     private boolean isFunctionDefNode;
 
-
     public FunctionDefNode(String name, Collection<VariableNode> args) {
-        super();
+        super(name, args);
         isFunctionDefNode = true;
     }
 
@@ -52,13 +45,14 @@ public class FunctionDefNode extends MixinDefNode implements IVariableNode {
      * @return
      */
     public FunctionDefNode replaceContentDirective(FunctionNode functionNode) {
-        return (FunctionDefNode)findAndReplaceContentNodeInChildren(
-            this, (MixinNode)functionNode);
+        return (FunctionDefNode) findAndReplaceContentNodeInChildren(this,
+                functionNode);
     }
 
-     public FunctionDefNode replaceContentNode(ContentNode contentNode,
+    public FunctionDefNode replaceContentNode(ContentNode contentNode,
             FunctionNode functionNode) {
 
-        return (FunctionDefNode)replaceContentNode(contentNode, (MixinNode)functionNode);
+        return (FunctionDefNode) replaceContentNode(contentNode,
+                (MixinNode) functionNode);
     }
 }

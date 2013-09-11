@@ -43,7 +43,7 @@ public class MixinNodeHandler {
         replaceMixinNode(node, mixinDef);
     }
 
-    private static MixinDefNode replaceMixinNode(MixinNode mixinNode,
+    protected static MixinDefNode replaceMixinNode(MixinNode mixinNode,
             MixinDefNode mixinDef) {
         MixinDefNode defClone = (MixinDefNode) DeepCopy.copy(mixinDef);
         defClone.traverse();
