@@ -1,5 +1,5 @@
 @function my-calculation-function($some-number, $another-number){
-  @return $some-number + $another-number
+  @return $some-number + $another-number;
 }
 
 .my-module {
