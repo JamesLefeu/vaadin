@@ -45,9 +45,12 @@ public interface SCSSDocumentHandler extends DocumentHandler {
 
     void debugDirective();
 
-    void startReturnDirective();
+    ForNode forDirective(String var, String from, String to, boolean exclusive,
+            String body);
 
-    void endReturnDirective();
+    WhileNode whileDirective(String condition, String body);
+
+    void returnDirective(LexicalUnitImpl value);
 
     void startNestedProperties(String name);
 
