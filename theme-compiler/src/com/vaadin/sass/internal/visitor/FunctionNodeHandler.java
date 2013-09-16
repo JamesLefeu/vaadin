@@ -134,8 +134,7 @@ public class FunctionNodeHandler extends MixinNodeHandler {
             if (child instanceof ReturnNode) {
                 // process the final value
                 retVal = ReturnNodeHandler
-                        .evaluateExpression(((ReturnNode) child)
-                                .getExpression());
+                        .evaluateExpression((ReturnNode) child);
 
                 // return immediately as an exception
                 throw new ReturnNodeException(retVal);

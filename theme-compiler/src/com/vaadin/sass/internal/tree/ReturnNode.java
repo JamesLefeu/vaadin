@@ -16,45 +16,37 @@
 
 package com.vaadin.sass.internal.tree;
 
-import java.util.ArrayList;
-
-import com.vaadin.sass.internal.visitor.ReturnNodeHandler;
+import com.vaadin.sass.internal.ScssStylesheet;
+import com.vaadin.sass.internal.expression.ArithmeticExpressionEvaluator;
+import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 
 /**
  * @version $Revision: 1.0 $
  * @author James Lefeu @ Liferay, Inc.
  */
-public class ReturnNode extends Node implements IVariableNode {
+public class ReturnNode extends VariableNode implements IVariableNode {
     private static final long serialVersionUID = 3301805078983796870L;
 
-    private static String expression;
-
-    public ReturnNode() {
-        super();
-    }
-
-    public void setExpression(String s) {
-        expression = s;
-    }
-
-    public String getExpression() {
-        return expression;
-    }
-
-
-
-    @Override
-    public void replaceVariables(ArrayList<VariableNode> variables) {
-
+    public ReturnNode(LexicalUnitImpl value) {
+        super("", value, false);
     }
 
     @Override
     public void traverse() {
-        try {
-            ReturnNodeHandler.traverse(this);
-            //getParentNode().removeChild(this);
-        } catch (Exception e) {
-            e.printStackTrace();
+        /*
+         * "replaceVariables(ScssStylesheet.getVariables());" seems duplicated
+         * and can be extracted out of if, but it is not.
+         * containsArithmeticalOperator must be called before replaceVariables.
+         * Because for the "/" operator, it needs to see if its predecessor or
+         * successor is a Variable or not, to determine it is an arithmetic
+         * operator.
+         */
+        if (ArithmeticExpressionEvaluator.get().containsArithmeticalOperator(
+                expr)) {
+            replaceVariables(ScssStylesheet.getVariables());
+            expr = ArithmeticExpressionEvaluator.get().evaluate(expr);
+        } else {
+            replaceVariables(ScssStylesheet.getVariables());
         }
     }
 }

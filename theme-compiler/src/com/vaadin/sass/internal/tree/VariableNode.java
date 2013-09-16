@@ -28,7 +28,7 @@ public class VariableNode extends Node implements IVariableNode {
     private static final long serialVersionUID = 7003372557547748734L;
 
     private String name;
-    private LexicalUnitImpl expr;
+    protected LexicalUnitImpl expr;
     private boolean guarded;
 
     public VariableNode(String name, LexicalUnitImpl expr, boolean guarded) {
