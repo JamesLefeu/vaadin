@@ -851,7 +851,7 @@ void keyframes() :
   n=<KEY_FRAME_SYM> ( <S> )* {keyframeName = n.image;}
   (n = <IDENT>{animationname += n.image; }|n = < INTERPOLATION >{ animationname += n.image; })+(<S>)*
    {start = true; documentHandler.startKeyFrames(keyframeName, animationname); }
-   <LBRACE> ( <S> )* ( keyframeSelector() )* <RBRACE> ( <S> )*
+   <LBRACE> ( <S> )* ( keyframeSelector() )* <RBRACE> (LOOKAHEAD(2) <S> )*
  } catch (ParseException e) {
      reportError(getLocator(), e);
      skipStatement();
@@ -912,7 +912,7 @@ void media() :
   <MEDIA_SYM> ( <S> )*
    mediaStatement(ml)
    { start = true; documentHandler.startMedia(ml); }
-   <LBRACE> ( <S> )* ( debuggingDirective() | styleRule() | skipUnknownRule() )* <RBRACE> ( <S> )*
+   <LBRACE> ( <S> )* ( debuggingDirective() | styleRule() | skipUnknownRule() )* <RBRACE> (LOOKAHEAD(2) <S> )*
  } catch (ParseException e) {
      reportError(getLocator(), e);
      skipStatement();
@@ -1157,7 +1157,7 @@ String property() :
 String variableName() :
 {Token n;}
 {
-    n=<VARIABLE> (<S>)* {return convertIdent(n.image.substring(1));}
+    n=<VARIABLE> (LOOKAHEAD(2) <S>)* {return convertIdent(n.image.substring(1));}
 }
 
 String functionName() :
@@ -1184,7 +1184,7 @@ void styleRule() :
      }
      // a CSS import here will not work
      ( ifContentStatement() | microsoftExtension() | importDeclaration() )*
-     <RBRACE> (<S>)*
+     <RBRACE> (LOOKAHEAD(2) <S>)*
  } catch (ThrowedParseException e) {
      if (errorHandler != null) {
 	 LocatorImpl li = new LocatorImpl(this,
@@ -1487,7 +1487,7 @@ void variable() :
 {
 	try{
 		name = variableName()
-		":" ( <S> )* exp=expr() ( guarded=guarded() )?(";"(<S>)*)+
+		":" ( <S> )* exp=expr() ( guarded=guarded() )?(";"(LOOKAHEAD(2) <S>)*)+
 		//raw=skipStatementUntilSemiColon()
 		{
 		    documentHandler.variable(name, exp, guarded);
@@ -1546,7 +1546,7 @@ void ifDirective() :
     documentHandler.ifDirective(evaluator);
    }
   ( ifContentStatement() )*
-  < RBRACE >(< S >)*
+  < RBRACE >(LOOKAHEAD(2) < S >)*
   (elseDirective())*
   { documentHandler.endIfElseDirective(); }
 }
@@ -1565,7 +1565,7 @@ void elseDirective() :
     else{ documentHandler.elseDirective(); }  
   }
   ( ifContentStatement() )*
-  < RBRACE >(< S >)*
+  < RBRACE >(LOOKAHEAD(2) < S >)*
 }
 
 String booleanExpressionToken() :
@@ -1617,7 +1617,7 @@ void eachDirective() :
   )
   < LBRACE >(< S >)*
   ( ifContentStatement() )*	  
-  < RBRACE >(< S >)*
+  < RBRACE >(LOOKAHEAD(2) < S >)*
   { documentHandler.endEachDirective();}
 }
 
@@ -1647,7 +1647,7 @@ void functionDirective() :
     (name = functionName() 
       args = arglist()) <RPARAN> (<S>)* <LBRACE> (<S>)*
     {documentHandler.startFunctionDirective(name, args);}
-    ( ifContentStatement() | controlDirective() | fontFace() | page() | returnDirective())*
+    ( ifContentStatement() | fontFace() | page() | returnDirective())*
     <RBRACE>(<S>)*
     {documentHandler.endFunctionDirective(name, args);}
 }
@@ -1757,11 +1757,11 @@ void includeDirective() :
     (name = property()|name = variableName(){ name = "$"+name;}
          |(name = functionName() 
            args = argValuelist()) <RPARAN>)
-    ((";"(<S>)*)+
+    ((";"(LOOKAHEAD(2) <S>)*)+
            {documentHandler.includeDirective(name, args);}
     | <LBRACE> (<S>)* {documentHandler.startIncludeContentBlock(name);}
       (styleRuleOrDeclarationOrNestedProperties())*
-      <RBRACE> (<S>)* {documentHandler.endIncludeContentBlock();}
+      <RBRACE> (LOOKAHEAD(2) <S>)* {documentHandler.endIncludeContentBlock();}
     )
 }
 
@@ -1812,7 +1812,7 @@ void listModifyDirective() :
           break;
       }
       }
-      (< S >)*< SEMICOLON >(<S>)*
+      (< S >)*< SEMICOLON >(LOOKAHEAD(2) <S>)*
 }
 
 
@@ -1970,14 +1970,15 @@ String listModifyDirectiveArgs(int nest)
 }
 
 void returnDirective() :
-{}
+{
+  	LexicalUnitImpl exp = null;
+}
 {
     <RETURN_SYM>
-    (<S>)*
-    {documentHandler.startReturnDirective();}
-    (ifContentStatement() | booleanExpressionToken())*
-    (<S>)*
-    {documentHandler.endReturnDirective();}
+    (LOOKAHEAD(2) <S>)*
+    exp = expr()
+    (";"(LOOKAHEAD(2) <S>)*)+
+    {documentHandler.returnDirective(exp);}
 }
 
 void debuggingDirective() :
@@ -1995,7 +1996,7 @@ void debugDirective() :
     // TODO should evaluate the content expression, call documentHandler.debugDirective() etc.
     System.out.println(content);
     }
-    (<S>)*
+    (LOOKAHEAD(2) <S>)*
 }
 
 void warnDirective() :
@@ -2007,7 +2008,7 @@ void warnDirective() :
     // TODO should evaluate the content expression, call documentHandler.warnDirective() etc.
     System.err.println(content);
     }
-    (<S>)*
+    (LOOKAHEAD(2) <S>)*
 }
 
 Node forDirective() :
@@ -2050,7 +2051,7 @@ void extendDirective() :
     <EXTEND_SYM>
     (<S>)*
     list = selectorList()
-    (";"(<S>)*)+
+    (";"(LOOKAHEAD(2) <S>)*)+
     {documentHandler.extendDirective(list);}
 }
 
@@ -2059,7 +2060,7 @@ void contentDirective() :
 {
     <CONTENT_SYM>
     (<S>)*
-    (";"(<S>)*)+
+    (";"(LOOKAHEAD(2) <S>)*)+
     {documentHandler.contentDirective();}
 }
 
@@ -2175,7 +2176,7 @@ void declarationOrNestedProperties() :
          documentHandler.startNestedProperties(name);
      }
      ( declaration() )? ( ";" ( <S> )* ( declaration() )? )*
-     <RBRACE>(<S>)*
+     <RBRACE>(LOOKAHEAD(2) <S>)*
      {
          documentHandler.endNestedProperties(name);
      }
@@ -2270,7 +2271,7 @@ void declaration() :
 boolean prio() :
 {}
 {
-  <IMPORTANT_SYM> ( <S> )* { return true; }
+  <IMPORTANT_SYM> (LOOKAHEAD(2) <S> )* { return true; }
 }
 
 boolean guarded() :
@@ -2493,7 +2494,7 @@ LexicalUnitImpl result = null;
 	| result=hexcolor(prev)	
         | result=url(prev)
 	| result=unicode(prev)
-         ) ) ( <S> )*
+         ) ) (LOOKAHEAD(2) <S> )*
   {
     return result;
   }
