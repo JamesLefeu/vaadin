@@ -2293,7 +2293,7 @@ LexicalUnitImpl operator(LexicalUnitImpl prev) :
 *limits:
 * 1. cannot mix arithmetic and css operations, e.g. "margin: 1px + 3px 2px" will fail
 * 2. space between add and minus operator and their following operand is mandatory. e.g. "1 + 2" is valid, "1+2" is not
-* 3. parenthesis is not supported now.  
+* 3. parenthesis support has been added.
 */
 n="," ( <S> )* { return LexicalUnitImpl.createComma(n.beginLine, 
             n.beginColumn,
@@ -2322,18 +2322,136 @@ n="," ( <S> )* { return LexicalUnitImpl.createComma(n.beginLine,
         prev); }
 }
 
+LexicalUnitImpl lparens(LexicalUnitImpl prev) :
+{
+  LexicalUnitImpl result = null;
+}
+{
+  "(" (<S>)*
+  {
+    result = LexicalUnitImpl.createLeftParenthesis(token.beginLine, token.beginColumn,
+               prev); 
+    return result;
+  }
+}
+
+LexicalUnitImpl rparens(int parensCount, LexicalUnitImpl prev) :
+{
+  LexicalUnitImpl result = null;
+}
+{
+  ")" (<S>)*
+  {
+    parensCount--;
+    if (parensCount < 0) {      throw new ParseException("Sass Error: Too Many RightParentheses in Expression. Value: "+ parensCount);    }
+    result = LexicalUnitImpl.createRightParenthesis(token.beginLine, token.beginColumn,
+                prev); 
+    return result;  }
+}
+
+LexicalUnitImpl lrparens(int parensCount, LexicalUnitImpl prev) :
+{
+  LexicalUnitImpl result = null;
+}
+{
+  result=lparens(prev)
+| result=rparens(parensCount, prev)
+  {
+
+    return result;
+  }}
+LexicalUnitImpl exprElement(LexicalUnitImpl first) :
+{
+    LexicalUnitImpl res;
+    int parensCount = 0;
+}
+{
+  LOOKAHEAD(3)
+  (
+    (res=lparens(first){parensCount++;})
+    res=exprElement(res)
+    (res=rparens(parensCount, res){parensCount--;})
+  )
+|
+  (
+    (res=lparens(first){parensCount++;})
+    (      res=exprElement(res)
+  |   res=term(res)
+    )
+    (
+      (res=operator(res))
+      (        res=exprElement(res)
+    |   res=term(res)
+      )
+    )+
+    (res=rparens(parensCount, res){parensCount--;})
+  )
+  {
+    if (parensCount != 0) {
+      throw new ParseException("Sass Error: Unbalanced Parentheses in Expression. Value: "+ parensCount);
+    }
+
+    return res;
+  }
+}
+
+LexicalUnitImpl simpleExpr() :
+{
+    LexicalUnitImpl first, res;
+}
+{
+  first=term(null){ res = first; }
+  ( LOOKAHEAD(2) ( LOOKAHEAD(2) res=operator(res) )? res=term(res))*
+  {
+    return first;
+  }
+}
+
+LexicalUnitImpl complexExpr() :
+{
+  LexicalUnitImpl first, res;
+}
+{
+  (
+    first=term(null){ res = first; }
+  | first=exprElement(null){ res = first; }
+  )
+  (
+    LOOKAHEAD(2)
+    (res=operator(res))
+    (
+      res=exprElement(res)
+  |   res=term(res)
+    )
+  )+
+  {
+    while (first.getPreviousLexicalUnit() != null){      first = first.getPreviousLexicalUnit();
+    }
+    return first;
+  }
+}
+
 /**
  * @exception ParseException exception during the parse
  */
 LexicalUnitImpl expr() :
 {
-    LexicalUnitImpl first, res;
-    char op;
+  LexicalUnitImpl first;
 }
 {
-    first=term(null){ res = first; }
-    ( LOOKAHEAD(2) ( LOOKAHEAD(2) res=operator(res) )? res=term(res))*
-  { return first; }
+  (
+    LOOKAHEAD(simpleExpr())
+    (
+      first=simpleExpr()
+    )
+  |
+    LOOKAHEAD(complexExpr())
+    (      first=complexExpr()
+    )
+  )
+  {
+    return first;
+  }
 }
 
 /**
@@ -2350,15 +2468,14 @@ char unaryOperator() :
  * @exception ParseException exception during the parse
  */
 LexicalUnitImpl term(LexicalUnitImpl prev) :
-{ LexicalUnitImpl result = null;
-  Token n = null;
-  char op = ' ';
+{
+  LexicalUnitImpl result = null;
 }
 {
   (result = nonVariableTerm(prev)| result = variableTerm(prev))
-      {
-	  return result;
-      }
+  {
+    return result;
+  }
 }
 
 LexicalUnitImpl variableTerm(LexicalUnitImpl prev) :
