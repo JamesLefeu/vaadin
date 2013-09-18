@@ -38,8 +38,8 @@ import com.vaadin.sass.internal.parser.SCSSParseException;
 import com.vaadin.sass.internal.resolver.ScssStylesheetResolver;
 import com.vaadin.sass.internal.resolver.VaadinResolver;
 import com.vaadin.sass.internal.tree.BlockNode;
-import com.vaadin.sass.internal.tree.MixinDefNode;
 import com.vaadin.sass.internal.tree.FunctionDefNode;
+import com.vaadin.sass.internal.tree.MixinDefNode;
 import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.VariableNode;
 import com.vaadin.sass.internal.tree.controldirective.IfElseDefNode;
@@ -198,7 +198,9 @@ public class ScssStylesheet extends Node {
 
     private void populateDefinitions(Node node) {
         if (node instanceof FunctionDefNode) {
-            functionDefs.put(((FunctionDefNode) node).getName(), (FunctionDefNode) node);
+            functionDefs.put(((FunctionDefNode) node).getName(),
+                    (FunctionDefNode) node);
+            node.getParentNode().removeChild(node);
         } else if (node instanceof MixinDefNode) {
             mixinDefs.put(((MixinDefNode) node).getName(), (MixinDefNode) node);
             node.getParentNode().removeChild(node);
@@ -364,6 +366,7 @@ public class ScssStylesheet extends Node {
     public void setFile(File file) {
         this.file = file;
     }
+
     public static FunctionDefNode getFunctionDefinition(String name) {
         return functionDefs.get(name);
     }

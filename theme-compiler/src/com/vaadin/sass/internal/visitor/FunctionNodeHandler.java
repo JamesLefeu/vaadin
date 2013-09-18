@@ -18,6 +18,7 @@ package com.vaadin.sass.internal.visitor;
 
 import java.util.ArrayList;
 
+import org.w3c.css.sac.LexicalUnit;
 import org.w3c.flute.parser.ParseException;
 
 import com.vaadin.sass.internal.ScssStylesheet;
@@ -89,7 +90,60 @@ public class FunctionNodeHandler extends MixinNodeHandler {
         }
 
         ArrayList<LexicalUnitImpl> params = new ArrayList<LexicalUnitImpl>();
-        params.add(parameters);
+        LexicalUnitImpl iter = parameters;
+        LexicalUnitImpl item = null;
+        LexicalUnitImpl prev = null;
+        LexicalUnitImpl item2 = null;
+
+        if (parameters == null) {
+            // no parameters to add
+        } else if (parameters.getNextLexicalUnit() == null) {
+            params.add(parameters);
+        } else {
+            //
+            // This should handle the cases of:
+            // {"15" ","} ------------ 1 parameter
+            // {"," ","} ------------- 0 parameters
+            // {"1" "+" "3"} --------- 1 parameter
+            // {"," "15"} ------------ 1 parameter
+            // { } ------------------- 0 parameters
+            // {"1" "," "2" "," "3"} - 3 parameters
+            // {","} ----------------- 0 parameters
+            //
+            while (iter != null) {
+                if ((iter.getLexicalUnitType() == LexicalUnit.SAC_OPERATOR_COMMA)
+                        || (iter.getNextLexicalUnit() == null)) {
+                    // add the entry, and create cut to a new parameter
+                    item = iter;
+                    if (iter.getLexicalUnitType() == LexicalUnit.SAC_OPERATOR_COMMA) {
+                        item = item.getPreviousLexicalUnit();
+                    }
+
+                    // Here, we add the item we just found.
+                    if ((item != null)
+                            && (item.getLexicalUnitType() != LexicalUnit.SAC_OPERATOR_COMMA)) {
+                        item = item.clone();
+                        item2 = item;
+                        while (item2.getPreviousLexicalUnit() != null) {
+                            prev = item2.getPreviousLexicalUnit().clone();
+                            if (prev.getLexicalUnitType() == LexicalUnit.SAC_OPERATOR_COMMA) {
+                                item2.setPrevLexicalUnit(null);
+                            } else {
+                                item2.setPrevLexicalUnit(prev);
+                            }
+
+                            if (item2.getPreviousLexicalUnit() != null) {
+                                item2 = item2.getPreviousLexicalUnit();
+                            }
+                        }
+                        item.setNextLexicalUnit(null);
+                        params.add(item);
+                    }
+
+                }
+                iter = iter.getNextLexicalUnit();
+            }
+        }
 
         FunctionNode functionNode = new FunctionNode(functionName, params);
 

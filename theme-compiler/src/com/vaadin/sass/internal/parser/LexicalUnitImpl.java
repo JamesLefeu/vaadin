@@ -238,6 +238,12 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         short type = getLexicalUnitType();
         String text = null;
         switch (type) {
+        case SCSS_OPERATOR_LEFT_PAREN:
+            text = "(";
+            break;
+        case SCSS_OPERATOR_RIGHT_PAREN:
+            text = ")";
+            break;
         case SCSS_VARIABLE:
             text = "$" + s;
             break;
@@ -727,7 +733,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
 
     public static LexicalUnitImpl createRightParenthesis(int line, int column,
             LexicalUnitImpl previous) {
-        return new LexicalUnitImpl(SCSS_OPERATOR_LEFT_PAREN, line, column,
+        return new LexicalUnitImpl(SCSS_OPERATOR_RIGHT_PAREN, line, column,
                 previous);
     }
 
