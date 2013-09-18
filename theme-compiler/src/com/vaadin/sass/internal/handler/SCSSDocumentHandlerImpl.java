@@ -33,7 +33,6 @@ import com.vaadin.sass.internal.tree.CommentNode;
 import com.vaadin.sass.internal.tree.ContentNode;
 import com.vaadin.sass.internal.tree.ExtendNode;
 import com.vaadin.sass.internal.tree.FontFaceNode;
-import com.vaadin.sass.internal.tree.ForNode;
 import com.vaadin.sass.internal.tree.ImportNode;
 import com.vaadin.sass.internal.tree.KeyframeSelectorNode;
 import com.vaadin.sass.internal.tree.KeyframesNode;
@@ -49,11 +48,12 @@ import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.RuleNode;
 import com.vaadin.sass.internal.tree.SimpleNode;
 import com.vaadin.sass.internal.tree.VariableNode;
-import com.vaadin.sass.internal.tree.WhileNode;
 import com.vaadin.sass.internal.tree.controldirective.EachDefNode;
 import com.vaadin.sass.internal.tree.controldirective.ElseNode;
+import com.vaadin.sass.internal.tree.controldirective.ForNode;
 import com.vaadin.sass.internal.tree.controldirective.IfElseDefNode;
 import com.vaadin.sass.internal.tree.controldirective.IfNode;
+import com.vaadin.sass.internal.tree.controldirective.WhileNode;
 
 public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
 
@@ -94,39 +94,35 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
     }
 
     @Override
-    public ForNode forDirective(String var, String from, String to,
-            boolean exclusive, String body) {
-        ForNode node = new ForNode(var, from, to, exclusive, body);
-        System.out.println(node);
-        return node;
+    public void startForDirective(String var, LexicalUnitImpl from,
+            LexicalUnitImpl to, boolean inclusive) {
+        ForNode node = new ForNode(var, from, to, inclusive);
+        nodeStack.peek().appendChild(node);
+        nodeStack.push(node);
     }
 
     @Override
-    public EachDefNode startEachDirective(String var, ArrayList<String> list) {
+    public void endForDirective() {
+        nodeStack.pop();
+    }
+
+    @Override
+    public void startEachDirective(String var, ArrayList<String> list) {
         EachDefNode node = new EachDefNode(var, list);
         nodeStack.peek().appendChild(node);
         nodeStack.push(node);
-        return node;
     }
 
     @Override
-    public EachDefNode startEachDirective(String var, String listVariable) {
+    public void startEachDirective(String var, String listVariable) {
         EachDefNode node = new EachDefNode(var, listVariable);
         nodeStack.peek().appendChild(node);
         nodeStack.push(node);
-        return node;
     }
 
     @Override
     public void endEachDirective() {
         nodeStack.pop();
-    }
-
-    @Override
-    public WhileNode whileDirective(String condition, String body) {
-        WhileNode node = new WhileNode(condition, body);
-        System.out.println(node);
-        return node;
     }
 
     @Override
@@ -256,6 +252,18 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
     }
 
     @Override
+    public void startWhileDirective(String evaluator) {
+        WhileNode node = new WhileNode(evaluator);
+        nodeStack.peek().appendChild(node);
+        nodeStack.push(node);
+    }
+
+    @Override
+    public void endWhileDirective() {
+        nodeStack.pop();
+    }
+
+    @Override
     public void startIfElseDirective() {
         final IfElseDefNode node = new IfElseDefNode();
         nodeStack.peek().appendChild(node);
@@ -345,13 +353,11 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
         KeyframesNode node = new KeyframesNode(keyframeName, animationName);
         nodeStack.peek().appendChild(node);
         nodeStack.push(node);
-
     }
 
     @Override
     public void endKeyFrames() {
         nodeStack.pop();
-
     }
 
     @Override
@@ -359,7 +365,6 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
         KeyframeSelectorNode node = new KeyframeSelectorNode(selector);
         nodeStack.peek().appendChild(node);
         nodeStack.push(node);
-
     }
 
     @Override
@@ -378,7 +383,6 @@ public class SCSSDocumentHandlerImpl implements SCSSDocumentHandler {
         MixinNode node = new MixinNode(name);
         nodeStack.peek().appendChild(node);
         nodeStack.push(node);
-
     }
 
     @Override

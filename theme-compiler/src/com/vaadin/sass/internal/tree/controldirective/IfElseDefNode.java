@@ -16,7 +16,7 @@
 package com.vaadin.sass.internal.tree.controldirective;
 
 import com.vaadin.sass.internal.tree.Node;
-import com.vaadin.sass.internal.visitor.IfElseNodeHandler;
+import com.vaadin.sass.internal.visitor.controldirective.IfElseNodeHandler;
 
 public class IfElseDefNode extends Node {
 
