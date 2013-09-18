@@ -41,9 +41,9 @@ public class CustomFunctions extends AbstractTestBase {
         parser.setDocumentHandler(handler);
         parser.parseStyleSheet(getClass().getResource(scss).getPath());
         ScssStylesheet root = handler.getStyleSheet();
-        Assert.assertEquals(3, root.getChildren().size());
-        BlockNode blockNode = (BlockNode) root.getChildren().get(2);
-        Assert.assertEquals(14, blockNode.getChildren().size());
+        Assert.assertEquals(5, root.getChildren().size());
+        BlockNode blockNode = (BlockNode) root.getChildren().get(4);
+        Assert.assertEquals(1, blockNode.getChildren().size());
     }
 
     @Test
