@@ -19,6 +19,8 @@ package com.vaadin.sass.internal.tree;
 import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.expression.ArithmeticExpressionEvaluator;
 import com.vaadin.sass.internal.parser.LexicalUnitImpl;
+import com.vaadin.sass.internal.parser.ReturnNodeException;
+import com.vaadin.sass.internal.visitor.FunctionNodeHandler;
 
 /**
  * @version $Revision: 1.0 $
@@ -32,7 +34,7 @@ public class ReturnNode extends VariableNode implements IVariableNode {
     }
 
     @Override
-    public void traverse() {
+    public void traverse() throws ReturnNodeException {
         /*
          * "replaceVariables(ScssStylesheet.getVariables());" seems duplicated
          * and can be extracted out of if, but it is not.
@@ -48,5 +50,15 @@ public class ReturnNode extends VariableNode implements IVariableNode {
         } else {
             replaceVariables(ScssStylesheet.getVariables());
         }
+
+        /*
+         * As the @return entry should only exist within an @function entry and
+         * the @function entry will certainly catch this exception, all other
+         * uses of @return are a syntax error.
+         */
+        FunctionNodeHandler.evaluateFunctions(expr);
+
+        // return immediately as an exception
+        throw new ReturnNodeException(expr);
     }
 }

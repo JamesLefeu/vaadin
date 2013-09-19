@@ -23,6 +23,7 @@ import com.vaadin.sass.internal.ScssStylesheet;
 import com.vaadin.sass.internal.expression.ArithmeticExpressionEvaluator;
 import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 import com.vaadin.sass.internal.util.StringUtil;
+import com.vaadin.sass.internal.visitor.FunctionNodeHandler;
 
 public class RuleNode extends Node implements IVariableNode {
     private static final long serialVersionUID = 6653493127869037022L;
@@ -141,6 +142,9 @@ public class RuleNode extends Node implements IVariableNode {
 
     @Override
     public void traverse() {
+
+        FunctionNodeHandler.evaluateFunctions(value);
+
         /*
          * "replaceVariables(ScssStylesheet.getVariables());" seems duplicated
          * and can be extracted out of if, but it is not.

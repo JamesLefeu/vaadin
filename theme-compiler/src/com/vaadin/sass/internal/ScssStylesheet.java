@@ -34,6 +34,7 @@ import com.vaadin.sass.internal.handler.SCSSDocumentHandlerImpl;
 import com.vaadin.sass.internal.handler.SCSSErrorHandler;
 import com.vaadin.sass.internal.parser.ParseException;
 import com.vaadin.sass.internal.parser.Parser;
+import com.vaadin.sass.internal.parser.ReturnNodeException;
 import com.vaadin.sass.internal.parser.SCSSParseException;
 import com.vaadin.sass.internal.resolver.ScssStylesheetResolver;
 import com.vaadin.sass.internal.resolver.VaadinResolver;
@@ -276,8 +277,12 @@ public class ScssStylesheet extends Node {
     public boolean traverse(Node node) {
         Node originalParent = node.getParentNode();
 
-        node.traverse();
-
+        try {
+            node.traverse();
+        } catch (ReturnNodeException rne) {
+            throw new ParseException(
+                    "@return field exists outside of a @function field.");
+        }
         Map<String, VariableNode> variableScope = openVariableScope();
 
         // the size of the child list may change on each iteration: current node
