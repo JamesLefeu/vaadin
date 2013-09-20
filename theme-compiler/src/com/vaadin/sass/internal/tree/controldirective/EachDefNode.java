@@ -24,7 +24,7 @@ import com.vaadin.sass.internal.parser.LexicalUnitImpl;
 import com.vaadin.sass.internal.tree.IVariableNode;
 import com.vaadin.sass.internal.tree.Node;
 import com.vaadin.sass.internal.tree.VariableNode;
-import com.vaadin.sass.internal.visitor.EachNodeHandler;
+import com.vaadin.sass.internal.visitor.controldirective.EachNodeHandler;
 
 public class EachDefNode extends Node implements IVariableNode {
     private static final long serialVersionUID = 7943948981204906221L;

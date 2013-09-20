@@ -61,7 +61,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
     private LexicalUnitImpl params;
     private boolean functionEvaluated;
 
-    LexicalUnitImpl(short type, int line, int column, LexicalUnitImpl p) {
+    public LexicalUnitImpl(short type, int line, int column, LexicalUnitImpl p) {
         if (p != null) {
             prev = p;
             p.next = this;
@@ -72,7 +72,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         functionEvaluated = false;
     }
 
-    LexicalUnitImpl(int line, int column, LexicalUnitImpl previous, int i) {
+    public LexicalUnitImpl(int line, int column, LexicalUnitImpl previous, int i) {
         this(SAC_INTEGER, line, column, previous);
         this.i = i;
         f = i;
@@ -94,15 +94,15 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
         this.sdimension = sdimension;
     }
 
-    LexicalUnitImpl(int line, int column, LexicalUnitImpl previous, short type,
-            String s) {
+    public LexicalUnitImpl(int line, int column, LexicalUnitImpl previous,
+            short type, String s) {
         this(type, line, column, previous);
         this.s = s;
         functionEvaluated = false;
     }
 
-    LexicalUnitImpl(short type, int line, int column, LexicalUnitImpl previous,
-            String fname, LexicalUnitImpl params) {
+    public LexicalUnitImpl(short type, int line, int column,
+            LexicalUnitImpl previous, String fname, LexicalUnitImpl params) {
         this(type, line, column, previous);
         this.fname = fname;
         this.params = params;
@@ -593,7 +593,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
     }
 
     static LexicalUnitImpl createMS(int line, int column,
-            LexicalUnitImpl previous, float v) {
+            LexicalUnitImpl previous, float v) throws ParseException {
         if (v < 0) {
             throw new ParseException("Time values may not be negative");
         }
@@ -602,7 +602,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
     }
 
     static LexicalUnitImpl createS(int line, int column,
-            LexicalUnitImpl previous, float v) {
+            LexicalUnitImpl previous, float v) throws ParseException {
         if (v < 0) {
             throw new ParseException("Time values may not be negative");
         }
@@ -610,7 +610,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
     }
 
     static LexicalUnitImpl createHZ(int line, int column,
-            LexicalUnitImpl previous, float v) {
+            LexicalUnitImpl previous, float v) throws ParseException {
         if (v < 0) {
             throw new ParseException("Frequency values may not be negative");
         }
@@ -618,7 +618,7 @@ public class LexicalUnitImpl implements LexicalUnit, SCSSLexicalUnit,
     }
 
     static LexicalUnitImpl createKHZ(int line, int column,
-            LexicalUnitImpl previous, float v) {
+            LexicalUnitImpl previous, float v) throws ParseException {
         if (v < 0) {
             throw new ParseException("Frequency values may not be negative");
         }

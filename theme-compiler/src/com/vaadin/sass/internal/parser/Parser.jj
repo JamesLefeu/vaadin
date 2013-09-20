@@ -138,7 +138,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      * @exception CSSException the source is not CSS valid.
      */
     public void parseStyleSheet(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 	if (selectorFactory == null) {
@@ -172,7 +172,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      */    
     // TODO required by original parser but not used by Vaadin?
     public void parseRule(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -194,7 +194,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      * @exception CSSException the source is not CSS valid.
      */
     public void parseStyleDeclaration(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -219,7 +219,7 @@ public class Parser implements org.w3c.css.sac.Parser {
      * Parse methods used by DOM Level 2 implementation.
      */    
     public void parseImportRule(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -233,7 +233,7 @@ public class Parser implements org.w3c.css.sac.Parser {
     }
 
     public void parseMediaRule(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -255,7 +255,7 @@ public class Parser implements org.w3c.css.sac.Parser {
     }
 
     public LexicalUnit parsePropertyValue(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -263,7 +263,7 @@ public class Parser implements org.w3c.css.sac.Parser {
     }
 
     public boolean parsePriority(InputSource source) 
-	    throws CSSException, IOException {
+	    throws CSSException, IOException, ParseException {
 	this.source = source;
 	ReInit(getCharStreamWithLurk(source));
 
@@ -912,7 +912,7 @@ void media() :
   <MEDIA_SYM> ( <S> )*
    mediaStatement(ml)
    { start = true; documentHandler.startMedia(ml); }
-   <LBRACE> ( <S> )* ( debuggingDirective() | styleRule() | skipUnknownRule() )* <RBRACE> (LOOKAHEAD(2) <S> )*
+   <LBRACE> ( <S> )* ( debuggingDirective() | LOOKAHEAD(styleRule()) styleRule() | LOOKAHEAD(skipUnknownRule()) skipUnknownRule() )* <RBRACE> (LOOKAHEAD(2) <S> )*
  } catch (ParseException e) {
      reportError(getLocator(), e);
      skipStatement();
@@ -1326,14 +1326,27 @@ String _class(String pred) :
 String s = ".";
 }
 {
-  "." (t = <IDENT>{s += t.image; }|t =  < INTERPOLATION >{ s += t.image; })+
+ /*
+  * This is to handle evaluation of a term which has multiple interpolations in
+  * the name. With the current grammar, NMSTART doesn't allow "-" as its only
+  * character. But, for the situation of:
+  *
+  * .#{$class-slug}-#{$i}
+  *
+  * This turns into three parameters. And it seemed simpler to add "-" to this
+  * function instead of modifying the grammars in the beginning of the file.
+  * 
+  * This is a SASS thing, as I saw similar implementation here:
+  * http://thesassway.com/intermediate/if-for-each-while
+  * and here: http://sass-lang.com/docs/yardoc/file.SASS_REFERENCE.html#id11
+  */
+  "." (t = <IDENT>{s += t.image; }|t =  < INTERPOLATION >{ s += t.image; }|t =  "-"{ s += t.image; })+
       { 
-	  
-	  if (pred == null) {
-	      return s;
-	  } else {
-	      return pred + s;
-	  }
+        if (pred == null) {
+          return s;
+        } else {
+          return pred + s;
+        }
       }
 }
 
@@ -1343,14 +1356,28 @@ String s = ".";
 String element_name() :
 {Token t; String s = "";}
 {
-    (t = <IDENT>{s += t.image; }|t = < INTERPOLATION >{ s += t.image; })+
-    { 
-      return s; 
+ /*
+  * This is to handle evaluation of a term which has multiple interpolations in
+  * the name. With the current grammar, NMSTART doesn't allow "-" as its only
+  * character. But, for the situation of:
+  *
+  * .#{$class-slug}-#{$i}
+  *
+  * This turns into three parameters. And it seemed simpler to add "-" to this
+  * function instead of modifying the grammars in the beginning of the file.
+  * 
+  * This is a SASS thing, as I saw similar implementation here:
+  * http://thesassway.com/intermediate/if-for-each-while
+  * and here: http://sass-lang.com/docs/yardoc/file.SASS_REFERENCE.html#id11
+  */
+    (t = <IDENT>{s += t.image; }|t = < INTERPOLATION >{ s += t.image; }|t = "-"{ s += t.image; })+
+    {
+      return s;
     }
-      | "*"
-    { return "*"; }
-      | "&"
-    { return "&"; }
+  | "*"
+    {return "*";}
+  | "&"
+    {return "&";}
 }
 
 /**
@@ -1522,7 +1549,7 @@ void variable() :
 void controlDirective() :
 {}
 {
-  ifDirective() | eachDirective()
+  ifDirective() | eachDirective() | forDirective() | whileDirective()
 }
 
 void ifContentStatement() :
@@ -1616,8 +1643,8 @@ void eachDirective() :
   {documentHandler.startEachDirective(var.image, listVariable);}
   )
   < LBRACE >(< S >)*
-  ( ifContentStatement() )*	  
-  < RBRACE >(LOOKAHEAD(2) < S >)*
+  ( ifContentStatement() )*
+  < RBRACE >(< S >)*
   { documentHandler.endEachDirective();}
 }
 
@@ -2012,38 +2039,43 @@ void warnDirective() :
     (LOOKAHEAD(2) <S>)*
 }
 
-Node forDirective() :
+void forDirective() :
 {
-    String var;
-    String from;
-    String to;
-    boolean exclusive;
-    String body;
-    Token tok;
+  Token var;
+  LexicalUnitImpl first = null;
+  LexicalUnitImpl secondTo = null;
+  LexicalUnitImpl secondThrough = null;
 }
 {
-    var = variableName()
-    {
-        int[] toThrough = {TO, THROUGH};
-        from = skipStatementUntil(toThrough);
-    }
-    (tok = <TO> {exclusive = true;}
-    | tok = <THROUGH> {exclusive = false;})
-    to = skipStatementUntilLeftBrace()
-    (<S>)*
-    body = skipStatement()
-    {return documentHandler.forDirective(var, from, to, exclusive, body);}
+  <FOR_SYM>
+  (<S>)*
+  var = <VARIABLE> (<S>)* <FROM> (<S>)* first = term(null)
+  (
+    <TO> (<S>)* secondTo = term(null)
+    {documentHandler.startForDirective(var.image, first, secondTo, false);}
+  | <THROUGH> (<S>)* secondThrough = term(null)
+    {documentHandler.startForDirective(var.image, first, secondThrough, true);}
+  )
+  (<S>)*
+  <LBRACE>(<S>)*
+  (ifContentStatement())*
+  <RBRACE>(<S>)*
+  {documentHandler.endForDirective();}
 }
 
-Node whileDirective() :
+void whileDirective() :
 {
-    String condition;
-    String body;
+    String s = null;
+    String evaluator = "";
 }
 {
-    condition = skipStatementUntilLeftBrace()
-    body = skipStatement()
-    {   return documentHandler.whileDirective(condition, body);}
+  <WHILE_SYM>
+  ( s = booleanExpressionToken() {evaluator += s;} )+
+  <LBRACE>(<S>)*
+  {documentHandler.startWhileDirective(evaluator);}
+  ( ifContentStatement() )*
+  <RBRACE>(<S>)*
+  {documentHandler.endWhileDirective();}
 }
 
 void extendDirective() : 
@@ -2344,10 +2376,13 @@ LexicalUnitImpl rparens(int parensCount, LexicalUnitImpl prev) :
   ")" (<S>)*
   {
     parensCount--;
-    if (parensCount < 0) {      throw new ParseException("Sass Error: Too Many RightParentheses in Expression. Value: "+ parensCount);    }
+    if (parensCount < 0) {
+      throw new ParseException("Sass Error: Too Many RightParentheses in Expression. Value: "+ parensCount);
+    }
     result = LexicalUnitImpl.createRightParenthesis(token.beginLine, token.beginColumn,
                 prev); 
-    return result;  }
+    return result;
+  }
 }
 
 LexicalUnitImpl lrparens(int parensCount, LexicalUnitImpl prev) :
@@ -2360,7 +2395,8 @@ LexicalUnitImpl lrparens(int parensCount, LexicalUnitImpl prev) :
   {
 
     return result;
-  }}
+  }
+}
 LexicalUnitImpl exprElement(LexicalUnitImpl first) :
 {
     LexicalUnitImpl res;
@@ -2376,12 +2412,14 @@ LexicalUnitImpl exprElement(LexicalUnitImpl first) :
 |
   (
     (res=lparens(first){parensCount++;})
-    (      res=exprElement(res)
+    (
+      res=exprElement(res)
   |   res=term(res)
     )
     (
       (res=operator(res))
-      (        res=exprElement(res)
+      (
+        res=exprElement(res)
     |   res=term(res)
       )
     )+
@@ -2426,7 +2464,8 @@ LexicalUnitImpl complexExpr() :
     )
   )+
   {
-    while (first.getPreviousLexicalUnit() != null){      first = first.getPreviousLexicalUnit();
+    while (first.getPreviousLexicalUnit() != null){
+      first = first.getPreviousLexicalUnit();
     }
     return first;
   }
@@ -2447,7 +2486,8 @@ LexicalUnitImpl expr() :
     )
   |
     LOOKAHEAD(complexExpr())
-    (      first=complexExpr()
+    (
+      first=complexExpr()
     )
   )
   {
