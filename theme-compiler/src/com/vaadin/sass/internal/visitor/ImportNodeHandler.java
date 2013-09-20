@@ -69,9 +69,11 @@ public class ImportNodeHandler {
                         ScssStylesheet imported = ScssStylesheet.get(
                                 filePathBuilder.toString(),
                                 styleSheet.getCharset());
+
                         if (imported == null) {
                             imported = ScssStylesheet.get(importNode.getUri());
                         }
+
                         if (imported == null) {
                             throw new FileNotFoundException("Import '"
                                     + importNode.getUri() + "' in '"
