@@ -1688,74 +1688,190 @@ void mixinDirective() :
 {
     <MIXIN_SYM>
     (<S>)*
-    (name = property()
-    |(name = functionName() 
-      args = arglist()) <RPARAN> (<S>)*) <LBRACE> (<S>)*
+    (
+      name = property()
+    | (
+        name = functionName() 
+        args = arglist()
+      )
+
+      <RPARAN> (<S>)*
+    )
+    <LBRACE> (<S>)*
     {documentHandler.startMixinDirective(name, args);}
     ( ifContentStatement() | fontFace() | page())*
     <RBRACE>(<S>)*
     {documentHandler.endMixinDirective(name, args);}
 }
 
-ArrayList<VariableNode> arglist() :
+VariableNode requiredArglistItem() :
 {
-    ArrayList<VariableNode> args = new ArrayList<VariableNode>();
-    VariableNode arg;
-    boolean hasNonOptionalArgument = false;
+  VariableNode arg;
 }
 {
-    arg=mixinArg() ( <COMMA> (<S>)* { hasNonOptionalArgument = checkMixinForNonOptionalArguments(arg, hasNonOptionalArgument); args.add(arg); } 
-        arg=mixinArg() )* 
-    { hasNonOptionalArgument = checkMixinForNonOptionalArguments(arg, hasNonOptionalArgument); args.add(arg); 
-        return args;
+  (
+    <COMMA> (<S>)*
+    arg=requiredMixinArg()
+  )
+  {
+    return arg;
+  }
+}
+
+VariableNode optionalArglistItem() :
+{
+  VariableNode arg;
+}
+{
+  (
+    <COMMA> (<S>)*
+    arg=optionalMixinArg()
+  )
+  {
+    return arg;
+  }
+}
+
+
+
+ArrayList<VariableNode> requiredArglistItems() :
+{  VariableNode arg;
+  ArrayList<VariableNode> args = new ArrayList<VariableNode>();
+}
+{
+  (
+    LOOKAHEAD(requiredArglistItem() (<COMMA> | <RPARAN>))
+    (      arg=requiredArglistItem()
+    )
+    {
+      args.add(arg);
+    }
+  )*
+  {
+    return args;
+  }
+}
+
+ArrayList<VariableNode> optionalArglistItems() :
+{
+  VariableNode arg;
+  ArrayList<VariableNode> args = new ArrayList<VariableNode>();
+}
+{
+  (
+    arg=optionalArglistItem()
+    {
+      args.add(arg);
+    }
+  )*
+  {
+    return args;
+  }
+}
+
+ArrayList<VariableNode> requiredArglist() :
+{
+  ArrayList<VariableNode> args = new ArrayList<VariableNode>();
+  ArrayList<VariableNode> reqArgs = new ArrayList<VariableNode>();
+  ArrayList<VariableNode> optArgs = new ArrayList<VariableNode>();
+  VariableNode arg = null;
+}
+{
+    (
+      arg=requiredMixinArg()      reqArgs=requiredArglistItems()      optArgs=optionalArglistItems()
+      {
+        args.add(arg);
+        args.addAll(reqArgs);
+        args.addAll(optArgs);
+      }
+    )    {
+      return args;
     }
 }
 
-JAVACODE
-boolean checkMixinForNonOptionalArguments(VariableNode arg, boolean hasNonOptionalArguments)
+ArrayList<VariableNode> optionalArglist() :
 {
-	boolean currentArgHasArguments = arg.getExpr() != null && arg.getExpr().getLexicalUnitType() == LexicalUnitImpl.SCSS_VARIABLE && arg.getExpr().getNextLexicalUnit() != null;
-  
-	if(currentArgHasArguments)
-	{
-		if(hasNonOptionalArguments)
-		{
-			throw new ParseException("Sass Error: Required argument $"+ arg.getName() +" must come before any optional arguments.");
-		}
-		return hasNonOptionalArguments;
-	}else
-	{
-	return true;
-	}
-}
-
-VariableNode mixinArg() :
-{
-    String name;
-    Token variable = null;
-    LexicalUnitImpl first = null;
-    LexicalUnitImpl prev = null;
-    LexicalUnitImpl next = null;
+  ArrayList<VariableNode> args = new ArrayList<VariableNode>();
+  ArrayList<VariableNode> listArgs = new ArrayList<VariableNode>();
+  VariableNode arg = null;
 }
 {
-    name=variableName() (< COLON > (< S >)*
-
     (
-      first = nonVariableTerm(null)
+      arg=optionalMixinArg()
+      listArgs=optionalArglistItems()
       {
-        prev = first;
+        args.add(arg);
+        args.addAll(listArgs);
       }
-	  (LOOKAHEAD(3)(< COMMA >(< S >)*)? prev = nonVariableTerm(prev))*
-	)
-	| (variable = < VARIABLE >{ first = LexicalUnitImpl.createVariable(token.beginLine, token.beginColumn,
-                 prev, variable.image);}
+    )
+    {
+      return args;
+    }
+}
 
-       )
-    )?
+ArrayList<VariableNode> arglist() :
+{
+  ArrayList<VariableNode> args = null;
+}
+{
+  (
+    LOOKAHEAD(requiredArglist())    (      args=requiredArglist()
+    )
+  | LOOKAHEAD(optionalArglist())
+    (
+      args=optionalArglist()
+    )
+  )
+  {
+    return args;
+  }
+}
+
+VariableNode requiredMixinArg() :
+{
+    String name = null;
+}
+{
+    name=variableName()
+    {
+        VariableNode arg = new VariableNode(name, null, false);
+        return arg;
+    }
+}
+
+VariableNode optionalMixinArg() :
+{
+    String name  = null;
+    LexicalUnitImpl first = null;
+}
+{
+    name=variableName()
+    (
+      <COLON> (<S>)*
+      first = complexExpr()
+    )
     {
         VariableNode arg = new VariableNode(name, first, false);
         return arg;
     }
+}
+
+VariableNode mixinArg() :
+{
+  VariableNode arg = null;
+}
+{
+  (    LOOKAHEAD(requiredMixinArg())
+    (      arg = requiredMixinArg()
+    )
+  | LOOKAHEAD(optionalMixinArg())
+    (
+      arg = optionalMixinArg()
+    )
+  )
+  {
+    return arg;
+  }
 }
 
 ArrayList<LexicalUnitImpl> argValuelist() :
@@ -1998,13 +2114,13 @@ String listModifyDirectiveArgs(int nest)
 
 void returnDirective() :
 {
-  	LexicalUnitImpl exp = null;
+    LexicalUnitImpl exp = null;
 }
 {
     <RETURN_SYM>
     (<S>)*
     exp = expr()
-    ";"
+    (";")*
     (<S>)*
     {documentHandler.returnDirective(exp);}
 }
@@ -2313,6 +2429,42 @@ boolean guarded() :
     <GUARDED_SYM> (<S>)* {return true;}
 }
 
+LexicalUnitImpl complexOperator(LexicalUnitImpl prev) :
+{Token n;}
+{
+/* (comments copied from basic_arithmetics.scss)
+*supports:
+* 1. standard arithmetic operations (+, -, *, /, %)
+* 2. / is treated as css operator, unless one of its operands is variable or there is another binary arithmetic operator
+*limits:
+* 1. cannot mix arithmetic and css operations, e.g. "margin: 1px + 3px 2px" will fail
+* 2. space between add and minus operator and their following operand is mandatory. e.g. "1 + 2" is valid, "1+2" is not
+* 3. parenthesis support has been added.
+*/
+n="/" ( <S> )* { return LexicalUnitImpl.createSlash(n.beginLine, 
+            n.beginColumn,
+            prev); }
+| n="*" ( <S> )* { return LexicalUnitImpl.createMultiply(n.beginLine,
+            n.beginColumn,
+            prev); }
+| n="%" ( <S> )* { return LexicalUnitImpl.createModulo(n.beginLine,
+            n.beginColumn,
+            prev); }
+/*
+* for '+', since it can be either a binary operator or an unary operator,
+* which is ambiguous. To avoid this, the binary operator '+' always has
+* a space before the following term. so '2+3' is not a valid binary expression,
+* but '2 + 3' is.  The same for '-' operator.
+*/
+
+| n="+" ( <S> )+{ return LexicalUnitImpl.createAdd(n.beginLine,
+        n.beginColumn,
+        prev); }
+| n="-" ( <S> )+{ return LexicalUnitImpl.createMinus(n.beginLine,
+        n.beginColumn,
+        prev); }
+}
+
 /**
  * @exception ParseException exception during the parse
  */
@@ -2373,7 +2525,7 @@ LexicalUnitImpl rparens(int parensCount, LexicalUnitImpl prev) :
   LexicalUnitImpl result = null;
 }
 {
-  ")" (<S>)*
+  ")" (LOOKAHEAD(2) <S>)*
   {
     parensCount--;
     if (parensCount < 0) {
@@ -2417,7 +2569,7 @@ LexicalUnitImpl exprElement(LexicalUnitImpl first) :
   |   res=term(res)
     )
     (
-      (res=operator(res))
+      (res=complexOperator(res))
       (
         res=exprElement(res)
     |   res=term(res)
@@ -2457,12 +2609,12 @@ LexicalUnitImpl complexExpr() :
   )
   (
     LOOKAHEAD(2)
-    (res=operator(res))
+    (res=complexOperator(res))
     (
       res=exprElement(res)
   |   res=term(res)
     )
-  )+
+  )*
   {
     while (first.getPreviousLexicalUnit() != null){
       first = first.getPreviousLexicalUnit();
