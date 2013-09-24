@@ -35,8 +35,8 @@ import com.vaadin.sass.internal.parser.ParseException;
 import com.vaadin.sass.internal.parser.Parser;
 import com.vaadin.sass.internal.parser.ReturnNodeException;
 import com.vaadin.sass.internal.parser.SCSSParseException;
+import com.vaadin.sass.internal.resolver.CustomVaadinResolver;
 import com.vaadin.sass.internal.resolver.ScssStylesheetResolver;
-import com.vaadin.sass.internal.resolver.VaadinResolver;
 import com.vaadin.sass.internal.tree.BlockNode;
 import com.vaadin.sass.internal.tree.FunctionDefNode;
 import com.vaadin.sass.internal.tree.MixinDefNode;
@@ -67,6 +67,10 @@ public class ScssStylesheet extends Node {
     private String charset;
 
     private static ArrayList<ScssStylesheetResolver> resolvers = null;
+
+    private static final String _coreLibraryPath = "com/vaadin/lib";
+
+    private static final String _coreFunctionsFile = "coreFunctions.css";
 
     /**
      * Read in a file SCSS and parse it into a ScssStylesheet
@@ -106,6 +110,7 @@ public class ScssStylesheet extends Node {
      */
     public static ScssStylesheet get(String identifier, String encoding)
             throws CSSException, IOException {
+
         /*
          * The encoding to be used is passed through "encoding" parameter. the
          * imported children scss node will have the same encoding as their
@@ -120,6 +125,8 @@ public class ScssStylesheet extends Node {
         }
 
         // FIXME Is this actually intended? /John 1.3.2013
+        // this is valuable as a security check because getCanonicalFile() can
+        // throw exceptions upon invalid input.
         File file = new File(identifier);
         file = file.getCanonicalFile();
 
@@ -149,6 +156,16 @@ public class ScssStylesheet extends Node {
     }
 
     /**
+     * This will grab the mixin and function definitions from our core library.
+     * 
+     * @throws Exception
+     */
+    private static void loadDefaultLibrary() throws Exception {
+        ScssStylesheet stylesheet = ScssStylesheet.get(_coreFunctionsFile);
+        stylesheet.compile(true);
+    }
+
+    /**
      * The "resolvers" need to be a modifiable list.
      * 
      * @param styleSheetResolver
@@ -160,6 +177,8 @@ public class ScssStylesheet extends Node {
 
             if (resolvers == null) {
                 resolvers = new ArrayList<ScssStylesheetResolver>();
+                _setStylesheetResolvers(new CustomVaadinResolver(
+                        _coreLibraryPath));
             }
             resolvers.add(styleSheetResolver);
         }
@@ -186,6 +205,24 @@ public class ScssStylesheet extends Node {
      */
     public static void setStylesheetResolvers(
             ScssStylesheetResolver... styleSheetResolvers) {
+        if (resolvers == null) {
+            resolvers = new ArrayList<ScssStylesheetResolver>();
+            _setStylesheetResolvers(new CustomVaadinResolver(_coreLibraryPath));
+        }
+
+        for (ScssStylesheetResolver resolver : styleSheetResolvers) {
+            addStylesheetResolver(resolver);
+        }
+    }
+
+    /**
+     * The "resolvers" need to be a modifiable list.
+     * 
+     * @param styleSheetResolvers
+     *            the styleSheetResolvers to set
+     */
+    private static void _setStylesheetResolvers(
+            ScssStylesheetResolver... styleSheetResolvers) {
 
         resolvers = null;
         ArrayList<ScssStylesheetResolver> myList = null;
@@ -199,7 +236,7 @@ public class ScssStylesheet extends Node {
 
     public InputSource resolveStylesheet(String identifier) {
         if (resolvers == null) {
-            setStylesheetResolvers(new VaadinResolver());
+            _setStylesheetResolvers(new CustomVaadinResolver(_coreLibraryPath));
         }
 
         for (ScssStylesheetResolver resolver : resolvers) {
@@ -220,6 +257,15 @@ public class ScssStylesheet extends Node {
      * @throws Exception
      */
     public void compile() throws Exception {
+        compile(false);
+    }
+
+    /**
+     * Applies all the visitors and compiles SCSS into Css.
+     * 
+     * @throws Exception
+     */
+    private void compile(boolean isInitializing) throws Exception {
         mainStyleSheet = this;
         mixinDefs.clear();
         functionDefs.clear();
@@ -227,6 +273,9 @@ public class ScssStylesheet extends Node {
         ifElseDefNodes.clear();
         lastNodeAdded.clear();
         ExtendNodeHandler.clear();
+        if (!isInitializing) {
+            loadDefaultLibrary();
+        }
         importOtherFiles(this);
         populateDefinitions(this);
         traverse(this);

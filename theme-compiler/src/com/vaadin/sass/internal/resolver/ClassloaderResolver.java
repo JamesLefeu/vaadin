@@ -47,8 +47,9 @@ public class ClassloaderResolver implements ScssStylesheetResolver {
         }
 
         // Can the classloader find it?
-        InputStream is = getClass().getClassLoader().getResourceAsStream(
-                fileName);
+        Class c = getClass();
+        ClassLoader cl = c.getClassLoader();
+        InputStream is = cl.getResourceAsStream(fileName);
         if (is != null) {
             InputSource source = new InputSource();
             source.setByteStream(is);

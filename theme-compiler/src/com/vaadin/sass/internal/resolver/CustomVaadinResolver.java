@@ -234,6 +234,15 @@ public class CustomVaadinResolver extends VaadinResolver implements
             i++;
         }
 
+        i = 0;
+        while ((i < importPaths.size()) && (source == null)) {
+            String item = importPaths.get(i).concat(
+                    String.valueOf((File.separatorChar)).concat(filename));
+
+            source = classLoaderResolver.resolve(item);
+            i++;
+        }
+
         return source;
     }
 
